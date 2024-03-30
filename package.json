@@ -1,0 +1,25 @@
+{
+  "name": "beamtwitchchaos",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx webpack --config webpack.config.js",
+    "watch": "npx webpack --config webpack.config.js --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "less": "^4.2.0",
+    "less-loader": "^12.2.0",
+    "mini-css-extract-plugin": "^2.8.1",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.3",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "css-loader": "^6.10.0",
+    "style-loader": "^3.3.4"
+  }
+}

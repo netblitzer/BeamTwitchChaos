@@ -1,0 +1,831 @@
+/*!****************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js!./node_modules/less-loader/dist/cjs.js!./src/styles/index.less ***!
+  \****************************************************************************************************************/
+* {
+  box-sizing: border-box;
+  overflow: visible;
+}
+.btc-hidden {
+  display: none !important;
+}
+.btc-visible {
+  display: unset !important;
+}
+.beam-twitch {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background: none;
+  overflow: visible;
+}
+.btc-title {
+  position: absolute;
+  left: 10px;
+  font-size: 10px;
+}
+.btc-title span {
+  display: inline;
+}
+.btc-title .t1 {
+  color: #ff7300;
+}
+.btc-title .t2 {
+  color: white;
+}
+.btc-title .t3 {
+  color: #aa28ff;
+}
+.btc-menu {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transition: top 0.5s, opacity 0.3s;
+}
+.btc-menu:not(#btc-main-menu) {
+  background: rgba(0, 0, 0, 0.5);
+}
+.btc-menu .btc-closed {
+  top: 100%;
+  opacity: 0;
+}
+.btc-menu .btc-open {
+  top: 0%;
+  opacity: 1;
+}
+.btc-small-cap {
+  font-style: normal;
+  text-transform: capitalize;
+  font-variant-caps: all-small-caps;
+  font-weight: normal;
+  font-size: 12px;
+}
+.fullscreen-canvas-container,
+.fullscreen-canvas {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 100vw;
+}
+.btc-button-container,
+.btc-server-container {
+  display: flex;
+  width: 100%;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 10px;
+  flex-flow: row-reverse wrap;
+  row-gap: 10px;
+}
+.btc-menu-button,
+.btc-button {
+  position: relative;
+  margin-left: 10px;
+  padding: 5px 30px 5px 10px;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  background: #555;
+  transition: all 0.3s;
+}
+.btc-menu-button svg,
+.btc-button svg {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+.btc-menu-button svg path,
+.btc-button svg path {
+  fill: white;
+}
+.btc-menu-button:hover,
+.btc-button:hover {
+  background: #888;
+}
+.btc-menu-button:focus,
+.btc-button:focus {
+  background: #333;
+}
+.btc-debug-button {
+  background: #36d;
+}
+.btc-debug-button:hover {
+  background: #69f;
+}
+.btc-debug-button:focus {
+  background: #25c;
+}
+@keyframes flashWarning {
+  from {
+    fill: #cc2222;
+  }
+  to {
+    fill: #ee3333;
+  }
+}
+@keyframes flashAlert {
+  from {
+    fill: #bb2222;
+  }
+  to {
+    fill: #ff4444;
+  }
+}
+.btc-server-container {
+  position: absolute;
+  display: flex;
+  top: 34px;
+  left: 34px;
+  width: fit-content;
+  padding: 5px;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  font-variant-caps: small-caps;
+  z-index: 10;
+}
+.btc-server-container #btc-server-status-container #btc-server-status-text {
+  margin-top: -2px;
+  margin-left: 30px;
+  font-size: 13px;
+}
+.btc-server-container #btc-server-status-container #btc-server-status-icon svg {
+  display: none;
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  left: 10px;
+  top: 5px;
+}
+.btc-server-container #btc-server-status-container #btc-server-status-icon .btc-icon-connected path:nth-child(2) {
+  fill: #000;
+}
+.btc-server-container #btc-server-status-container #btc-server-status-icon .btc-icon-connected path:last-child {
+  fill: #33ee33;
+}
+.btc-server-container #btc-server-status-container #btc-server-status-icon .btc-icon-disconnected path:last-child {
+  animation: 1s ease-in infinite alternate flashWarning;
+}
+.btc-server-container #btc-server-status-container #btc-server-status-icon .btc-icon-reconnected path:nth-child(2) {
+  fill: #000;
+}
+.btc-server-container #btc-server-status-container #btc-server-status-icon .btc-icon-reconnected path:last-child {
+  animation: 1s ease-in infinite alternate flashAlert;
+}
+.btc-server-container #btc-server-status-container[data-status="connected"] #btc-server-status-icon svg.btc-icon-connected {
+  display: unset;
+}
+.btc-server-container #btc-server-status-container[data-status="disconnected"] #btc-server-status-icon svg.btc-icon-disconnected {
+  display: unset;
+}
+.btc-server-container #btc-server-status-container[data-status="reconnecting"] #btc-server-status-icon svg.btc-icon-reconnected,
+.btc-server-container #btc-server-status-container[data-status="lost_connection"] #btc-server-status-icon svg.btc-icon-reconnected {
+  display: unset;
+}
+.btc-server-container .btc-button {
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  margin-left: 0;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  font-variant-caps: small-caps;
+}
+.btc-server-container .btc-button:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+.btc-server-container .btc-button:focus {
+  background: rgba(0, 0, 0, 0.9);
+}
+.btc-server-container .btc-settings-button {
+  position: absolute;
+  height: 36px;
+  width: 36px;
+  top: -2px;
+  left: 0;
+  opacity: 0;
+  transition: left 0.5s ease-in-out, opacity 0.3s 0.2s ease-out;
+}
+.btc-server-container .btc-settings-button svg {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  top: 6px;
+  left: -1px;
+  right: 0;
+}
+.btc-server-container .btc-settings-button svg path {
+  fill: rgba(255, 255, 255, 0.75);
+}
+.btc-server-container .btc-settings-button:hover {
+  left: -36px;
+  opacity: 1;
+  pointer-events: all;
+}
+.btc-server-container .btc-server-button-container {
+  position: absolute;
+  display: flex;
+  top: 2px;
+  left: 0;
+  flex-flow: row nowrap;
+  opacity: 0;
+  transition: top 0.5s ease-in-out, opacity 0.3s 0.2s ease-out;
+  z-index: -10;
+}
+.btc-server-container .btc-server-button-container:hover {
+  top: -32px;
+  opacity: 1;
+}
+.btc-server-container .btc-server-button-container:hover .btc-button {
+  pointer-events: all;
+}
+.btc-server-container:hover .btc-server-button-container {
+  top: -32px;
+  opacity: 1;
+}
+.btc-server-container:hover .btc-server-button-container .btc-button {
+  pointer-events: all;
+}
+.btc-server-container:hover .btc-settings-button {
+  left: -36px;
+  opacity: 1;
+  pointer-events: all;
+}
+.btc-server-container:hover .btc-combo-level-container {
+  top: 32px;
+  opacity: 1;
+}
+@keyframes cycleRainbow {
+  0% {
+    color: #ff2222;
+  }
+  14.3% {
+    color: #ff9922;
+  }
+  28.6% {
+    color: #ffee22;
+  }
+  42.9% {
+    color: #22ff22;
+  }
+  57.2% {
+    color: #2277ff;
+  }
+  71.5% {
+    color: #6622ff;
+  }
+  85.8% {
+    color: #bb22ff;
+  }
+  100% {
+    color: #ff2222;
+  }
+}
+@keyframes cycleRainbowGradient {
+  0% {
+    background: linear-gradient(90deg, #ff2222, #ff9922, #ffee22, #22ff22, #2277ff, #6622ff, #bb22ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  14.3% {
+    background: linear-gradient(90deg, #ff9922, #ffee22, #22ff22, #2277ff, #6622ff, #bb22ff, #ff2222);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  28.6% {
+    background: linear-gradient(90deg, #ffee22, #22ff22, #2277ff, #6622ff, #bb22ff, #ff2222, #ff9922);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  42.9% {
+    background: linear-gradient(90deg, #22ff22, #2277ff, #6622ff, #bb22ff, #ff2222, #ff9922, #ffee22);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  57.2% {
+    background: linear-gradient(90deg, #2277ff, #6622ff, #bb22ff, #ff2222, #ff9922, #ffee22, #22ff22);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  71.5% {
+    background: linear-gradient(90deg, #6622ff, #bb22ff, #ff2222, #ff9922, #ffee22, #22ff22, #2277ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  85.8% {
+    background: linear-gradient(90deg, #bb22ff, #ff2222, #ff9922, #ffee22, #22ff22, #2277ff, #6622ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  100% {
+    background: linear-gradient(90deg, #ff2222, #ff9922, #ffee22, #22ff22, #2277ff, #6622ff, #bb22ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+@keyframes slam {
+  0% {
+    transform: scale(1, 1);
+  }
+  40% {
+    transform: scale(1.4, 1.4);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+.btc-combo-info-container {
+  position: relative;
+  top: 110px;
+  left: 57px;
+}
+.btc-combo-info-container .btc-combo-count {
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform: scale(1.2, 1);
+  font-size: 100px;
+  font-weight: bold;
+  font-family: "Roboto", monospace, monospace;
+  cursor: pointer;
+}
+.btc-combo-info-container .btc-combo-count .btc-combo-count-inner {
+  display: flex;
+  position: absolute;
+  width: max-content;
+  top: 0;
+  left: 0;
+  flex-flow: row nowrap;
+}
+.btc-combo-info-container .btc-combo-count .btc-combo-count-inner div {
+  display: block;
+  animation-duration: 1s !important;
+}
+.btc-combo-info-container .btc-combo-count .btc-combo-count-inner.btc-combo-add div {
+  animation: 1s ease 1 slam;
+}
+.btc-combo-info-container .btc-combo-count span {
+  display: block;
+  animation: 20s ease-in infinite cycleRainbow;
+  opacity: 1;
+}
+.btc-combo-info-container .btc-combo-count span.btc-combo-hidden {
+  opacity: 0;
+}
+.btc-combo-info-container .btc-combo-count span#btc-ones {
+  animation-delay: 0.2s;
+}
+.btc-combo-info-container .btc-combo-count span#btc-tens {
+  animation-delay: 0.1s;
+}
+.btc-image-effect {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.btc-alert-container {
+  margin: 15% 25% 0 25%;
+  z-index: 10;
+}
+.btc-alert-container .btc-effect-alert {
+  display: block;
+  width: 100%;
+  margin: 0 auto 2%;
+  opacity: 1;
+  color: white;
+  text-shadow: 0 0 2px black;
+  font-size: 180%;
+  font-weight: bold;
+  text-align: center;
+  transition: all 0.15s;
+  z-index: 10;
+}
+.btc-alert-container .btc-effect-alert.btc-effect-alert-start,
+.btc-alert-container .btc-effect-alert.btc-effect-alert-end {
+  opacity: 0;
+  height: 0;
+}
+.btc-effect-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+}
+.btc-effect-container .btc-effect-tunnel-blackout {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transition: all 3s;
+  box-shadow: inset 0 0 0 black;
+  pointer-events: none;
+}
+.btc-effect-container .btc-effect-blackout-container {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  transition: all 3s, transform 50ms;
+}
+.btc-effect-container .btc-effect-t-blackout,
+.btc-effect-container .btc-effect-b-blackout,
+.btc-effect-container .btc-effect-l-blackout,
+.btc-effect-container .btc-effect-r-blackout {
+  position: absolute;
+  background: black;
+  transition: all 3s;
+  pointer-events: none;
+}
+.btc-effect-container .btc-effect-t-blackout {
+  bottom: 100%;
+  left: -50vw;
+  height: 100vh;
+  width: 200vw;
+}
+.btc-effect-container .btc-effect-b-blackout {
+  top: 100%;
+  left: -50vw;
+  height: 100vh;
+  width: 200vw;
+}
+.btc-effect-container .btc-effect-l-blackout {
+  top: -50vh;
+  right: 100%;
+  width: 100vw;
+  height: 200vh;
+}
+.btc-effect-container .btc-effect-r-blackout {
+  top: -50vh;
+  left: 100%;
+  width: 100vw;
+  height: 200vh;
+}
+.btc-combo-level-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: top 0.5s ease-in-out, opacity 0.3s 0.2s ease-out;
+}
+.btc-combo-level-container .btc-combo-level-inner {
+  display: flex;
+  width: max-content;
+  padding: 5px 10px;
+  flex-flow: column wrap;
+  justify-content: flex-start;
+  font-size: 16px;
+  font-style: italic;
+  font-variant-caps: all-small-caps;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  z-index: 10;
+}
+.btc-combo-level-container .btc-combo-level-inner .btc-combo-level {
+  position: relative;
+  margin-left: 8px;
+  font-size: 20px;
+  font-weight: bold;
+  font-style: normal;
+}
+.btc-combo-level-container .btc-combo-level-inner .btc-combo-highest {
+  margin-left: 8px;
+  font-weight: bold;
+  font-style: normal;
+}
+.fullscreen-canvas-container,
+.fullscreen-canvas,
+.btc-alert-container,
+.btc-effect-container {
+  pointer-events: none;
+}
+.btc-flex {
+  display: flex;
+}
+.btc-flex.flex-row {
+  flex-flow: row nowrap;
+  justify-content: center;
+}
+.btc-flex.flex-column {
+  flex-flow: column nowrap;
+  align-content: center;
+}
+.btc-ad-1,
+.btc-ad-4,
+.btc-ad-5,
+.btc-ad-11,
+.btc-ad-3 {
+  background: #eee;
+  border: 6px ridge #ccc;
+  font-family: 'Times New Roman', Times, serif;
+  display: flex;
+  flex-flow: column;
+}
+.btc-ad-1 .ad-title-bar,
+.btc-ad-4 .ad-title-bar,
+.btc-ad-5 .ad-title-bar,
+.btc-ad-11 .ad-title-bar,
+.btc-ad-3 .ad-title-bar {
+  background: #237;
+  padding: 2px 20px;
+  width: 100%;
+  border-bottom: 6px ridge #ccc;
+}
+.btc-ad-1 h2,
+.btc-ad-4 h2,
+.btc-ad-5 h2,
+.btc-ad-11 h2,
+.btc-ad-3 h2 {
+  text-align: center;
+  color: red;
+}
+.btc-ad-1 p,
+.btc-ad-4 p,
+.btc-ad-5 p,
+.btc-ad-11 p,
+.btc-ad-3 p {
+  padding: 0 20px;
+  text-align: center;
+  color: black;
+  margin: 4px;
+}
+.btc-ad-1 button,
+.btc-ad-4 button,
+.btc-ad-5 button,
+.btc-ad-11 button,
+.btc-ad-3 button {
+  color: black;
+  padding: 4px 8px;
+  border: 3px outset #ccc;
+  background: #eee;
+  margin: 4px auto;
+}
+.btc-ad-2 {
+  background: #d22;
+  border: 6px ridge #ccc;
+  font-family: 'Times New Roman', Times, serif;
+  display: flex;
+  flex-flow: column;
+}
+.btc-ad-2 .ad-title-bar {
+  background: #d22;
+  padding: 2px 20px;
+  width: 100%;
+  border-bottom: 6px ridge #ccc;
+}
+.btc-ad-2 h2 {
+  text-align: center;
+  color: white;
+}
+.btc-ad-2 p {
+  padding: 0 20px;
+  text-align: center;
+  color: #eee;
+  margin: 4px;
+}
+.btc-ad-2 button {
+  color: black;
+  padding: 4px 8px;
+  border: 3px outset #ccc;
+  background: #d22;
+  margin: 4px auto;
+}
+.btc-ad-4,
+.btc-ad-5 {
+  background: #eee;
+  font-family: 'Times New Roman', Times, serif;
+  display: flex;
+  flex-flow: column;
+}
+.btc-ad-4 .ad-title-bar,
+.btc-ad-5 .ad-title-bar {
+  background: #ffe600;
+  color: black;
+  padding: 2px 20px;
+  width: 100%;
+  border-bottom: 6px ridge #ccc;
+  font-weight: bolder;
+}
+.btc-ad-4 h2,
+.btc-ad-5 h2 {
+  text-align: center;
+  color: black;
+}
+.btc-ad-4 p,
+.btc-ad-5 p {
+  padding: 0 20px;
+  text-align: center;
+  color: black;
+  margin: 4px;
+}
+.btc-ad-4 button,
+.btc-ad-5 button {
+  color: black;
+  padding: 4px 8px;
+  border: 3px outset #ccc;
+  background: #eee;
+  margin: 4px auto;
+}
+.btc-ad-4 img,
+.btc-ad-5 img {
+  flex-shrink: 2;
+  max-width: calc(100% - 8px);
+  max-height: 200px;
+}
+.btc-ad-5 {
+  background-image: url(8dba4c4459fac270c3bf.jpg);
+  background-size: cover;
+  border: 6px ridge #ccc;
+}
+.btc-ad-5 .ad-title-bar {
+  background: #1a01fc;
+  color: red;
+  padding: 2px 20px;
+  width: 100%;
+  border-bottom: 6px ridge #ccc;
+  font-weight: bolder;
+  font-size: 20px;
+}
+.btc-ad-5 p {
+  color: white;
+}
+.btc-ad-6 {
+  background: linear-gradient(0.1turn, #113, #324, #357);
+}
+.btc-ad-6 button {
+  background: linear-gradient(0.1turn, #436, #357);
+}
+.btc-ad-9 {
+  background: linear-gradient(0.1turn, #111, #332, #553);
+}
+.btc-ad-9 button {
+  background: linear-gradient(0.1turn, #443, #763);
+}
+.btc-ad-10 {
+  background: linear-gradient(0.1turn, #111, #333, #544);
+}
+.btc-ad-10 button {
+  background: linear-gradient(0.1turn, #444, #766);
+}
+.btc-ad-12 {
+  background: linear-gradient(0.1turn, #555, #333, #122);
+}
+.btc-ad-12 button {
+  background: linear-gradient(0.1turn, #887, #554);
+}
+.btc-ad-6,
+.btc-ad-9,
+.btc-ad-12,
+.btc-ad-10 {
+  border-radius: 5%;
+  font-family: Arial, Helvetica, sans-serif;
+  display: flex;
+  flex-flow: column;
+  justify-content: space-between;
+}
+.btc-ad-6 .ad-title-bar,
+.btc-ad-9 .ad-title-bar,
+.btc-ad-12 .ad-title-bar,
+.btc-ad-10 .ad-title-bar {
+  background: #d22;
+  padding: 2px 20px;
+  width: 100%;
+  border-bottom: 6px ridge #ccc;
+}
+.btc-ad-6 h2,
+.btc-ad-9 h2,
+.btc-ad-12 h2,
+.btc-ad-10 h2 {
+  text-align: center;
+  color: white;
+}
+.btc-ad-6 p,
+.btc-ad-9 p,
+.btc-ad-12 p,
+.btc-ad-10 p {
+  padding: 0 20px;
+  text-align: center;
+  color: #eee;
+  margin: 4px;
+}
+.btc-ad-6 button,
+.btc-ad-9 button,
+.btc-ad-12 button,
+.btc-ad-10 button {
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin: 4px auto 20px;
+}
+.btc-ad-6 img,
+.btc-ad-9 img,
+.btc-ad-12 img,
+.btc-ad-10 img {
+  flex-shrink: 3;
+  max-width: calc(100% - 8px);
+  max-height: 200px;
+}
+.btc-ad-7 {
+  background-image: url(16f5f86eeafa11c9d406.png);
+}
+.btc-ad-8 {
+  background-image: url(66738fd368f51ccca91b.png);
+}
+.btc-ad-13 {
+  background-image: url(790fb89a26effab7820e.png);
+}
+.btc-ad-7,
+.btc-ad-13,
+.btc-ad-8 {
+  display: flex;
+  border-radius: 5%;
+  background-size: cover;
+  flex-flow: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding: 25px;
+}
+.btc-ad-7 h2,
+.btc-ad-13 h2,
+.btc-ad-8 h2 {
+  text-align: right;
+}
+.btc-ad-7 p,
+.btc-ad-13 p,
+.btc-ad-8 p {
+  width: 250px;
+}
+.btc-ad-7 button,
+.btc-ad-13 button,
+.btc-ad-8 button {
+  width: 250px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 5px;
+}
+.btc-ad-11 {
+  background: #ba4;
+}
+.btc-ad-11 .ad-title-bar {
+  background: #364;
+}
+.btc-ad-14 {
+  background-image: url(0484f2e0beb61d8a0fc9.png);
+  display: flex;
+  border-radius: 5%;
+  background-size: cover;
+  flex-flow: column;
+  padding: 16px 28px;
+  width: 255px !important;
+  height: 293px !important;
+  color: black;
+  font: 'serif' 10px;
+}
+.btc-ad-14 .flex-row {
+  padding: 0 5px;
+  justify-content: space-between;
+}
+.btc-ad-14 .flex-row button {
+  width: 80px;
+  background: rgba(0, 0, 0, 0);
+  border: #888 2px solid;
+  padding: 3px;
+  border-radius: 6px;
+}
+div[class*='btc-ad'] {
+  pointer-events: all;
+  position: absolute;
+  opacity: 1;
+  width: 600px;
+  height: 400px;
+}
+.ad-in-out.ad-in-slide.ad-left,
+.ad-in-out.ad-out-slide.ad-left {
+  right: 100vw !important;
+}
+.ad-in-out.ad-in-slide.ad-right,
+.ad-in-out.ad-out-slide.ad-right {
+  left: 100vw !important;
+}
+.ad-in-out.ad-in-slide.ad-top,
+.ad-in-out.ad-out-slide.ad-top {
+  bottom: 100vh !important;
+}
+.ad-in-out.ad-in-slide.ad-bottom,
+.ad-in-out.ad-out-slide.ad-bottom {
+  top: 100vh !important;
+}
+.ad-in-out.ad-in-fade,
+.ad-in-out.ad-out-fade {
+  opacity: 0 !important;
+}
+

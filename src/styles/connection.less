@@ -1,0 +1,182 @@
+@keyframes flashWarning {
+  from {
+    fill: #cc2222;
+  }
+
+  to {
+    fill: #ee3333;
+  }
+}
+
+@keyframes flashAlert {
+  from {
+    fill: #bb2222;
+  }
+
+  to {
+    fill: #ff4444;
+  }
+}
+
+
+.btc-server-container {
+  position: absolute;
+  display: flex;
+  top: 34px;
+  left: 34px;
+  width: fit-content;
+  padding: 5px;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  font-variant-caps: small-caps;
+  z-index: 10;
+
+  #btc-server-status-container {
+    #btc-server-status-text {
+      margin-top: -2px;
+      margin-left: 30px;
+      font-size: 13px;
+    }
+
+    #btc-server-status-icon {
+      svg {
+        display: none;
+        width: 20px;
+        height: 20px;
+        position: absolute;
+        left: 10px;
+        top: 5px;
+      }
+
+      .btc-icon-connected {
+        path:nth-child(2) {
+          fill: #000;
+        }
+
+        path:last-child {
+          fill: #33ee33;
+        }
+      }
+
+      .btc-icon-disconnected {
+        path:last-child {
+          animation: 1s ease-in infinite alternate flashWarning;
+        }
+      }
+
+      .btc-icon-reconnected {
+        path:nth-child(2) {
+          fill: #000;
+        }
+
+        path:last-child {
+          animation: 1s ease-in infinite alternate flashAlert;
+        }
+      }
+    }
+
+    &[data-status="connected"] #btc-server-status-icon svg.btc-icon-connected {
+      display: unset;
+    }
+
+    &[data-status="disconnected"] #btc-server-status-icon svg.btc-icon-disconnected {
+      display: unset;
+    }
+
+    &[data-status="reconnecting"] #btc-server-status-icon svg.btc-icon-reconnected,
+    &[data-status="lost_connection"] #btc-server-status-icon svg.btc-icon-reconnected {
+      display: unset;
+    }
+  }
+
+  .btc-button {
+    font-size: 13px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    margin-left: 0;
+    background: rgba(0, 0, 0, 0.75);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+    font-variant-caps: small-caps;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    &:focus {
+      background: rgba(0, 0, 0, 0.9);
+    }
+  }
+
+  .btc-settings-button {
+    position: absolute;
+    height: 36px;
+    width: 36px;
+    top: -2px;
+    left: 0;
+    opacity: 0;
+    transition: left 0.5s ease-in-out, opacity 0.3s 0.2s ease-out;
+
+    svg {
+      path {
+        fill: rgba(255, 255, 255, 0.75);
+      }
+
+      width: 20px;
+      height: 20px;
+      position: absolute;
+      top: 6px;
+      left: -1px;
+      right: 0;
+    }
+
+    &:hover {
+      left: -36px;
+      opacity: 1;
+      pointer-events: all;
+    }
+  }
+
+  .btc-server-button-container {
+    position: absolute;
+    display: flex;
+    top: 2px;
+    left: 0;
+    flex-flow: row nowrap;
+    opacity: 0;
+    transition: top 0.5s ease-in-out, opacity 0.3s 0.2s ease-out;
+    z-index: -10;
+
+    &:hover {
+      .btc-button {
+        pointer-events: all;
+      }
+
+      top: -32px;
+      opacity: 1;
+    }
+  }
+
+  &:hover {
+    .btc-server-button-container {
+      .btc-button {
+        pointer-events: all;
+      }
+
+      top: -32px;
+      opacity: 1;
+    }
+
+    .btc-settings-button {
+      left: -36px;
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .btc-combo-level-container {
+      top: 32px;
+      opacity: 1;
+    }
+  }
+}

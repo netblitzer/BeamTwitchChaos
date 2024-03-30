@@ -1,0 +1,55 @@
+.btc-button-container,
+.btc-server-container {
+  display: flex;
+  width: 100%;
+  padding: 10px;
+
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 10px;
+  flex-flow: row-reverse wrap;
+  row-gap: 10px;
+}
+
+.btc-menu-button,
+.btc-button {
+  position: relative;
+  margin-left: 10px;
+  padding: 5px 30px 5px 10px;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  background: #555;
+  transition: all 0.3s;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    right: 5px;
+    top: 5px;
+
+    path {
+      fill: white;
+    }
+  }
+
+  &:hover {
+    background: #888;
+  }
+
+  &:focus {
+    background: #333;
+  }
+}
+
+.btc-debug-button {
+  background: #36d;
+
+  &:hover {
+    background: #69f;
+  }
+
+  &:focus {
+    background: #25c;
+  }
+}

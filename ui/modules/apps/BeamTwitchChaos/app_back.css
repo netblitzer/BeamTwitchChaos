@@ -1,0 +1,512 @@
+* {
+  box-sizing: border-box;
+}
+
+.btc-hidden {
+  display: none;
+}
+
+.beam-twitch {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background: none;
+}
+
+.btc-title {
+  position: absolute;
+  left: 10px;
+  font-size: 10px;
+}
+
+.btc-title span {
+  display: inline;
+}
+
+.btc-title .t1 {
+  color: rgb(255, 115, 0);
+}
+
+.btc-title .t2 {
+  color: white;
+}
+
+.btc-title .t3 {
+  color: rgb(170, 40, 255);
+}
+
+.btc-menu {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+
+  transition: top 0.5s, opacity 0.3s;
+}
+
+.btc-menu:not(#btc-main-menu) {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.btc-closed {
+  top: 100%;
+  opacity: 0;
+}
+
+.btc-open {
+  top: 0%;
+  opacity: 1;
+}
+
+.btc-button-container,
+.btc-server-container {
+  display: flex;
+  width: 100%;
+  padding: 10px;
+
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 10px;
+  flex-flow: row-reverse wrap;
+  row-gap: 10px;
+}
+
+.btc-menu-button,
+.btc-button {
+  position: relative;
+  margin-left: 10px;
+  padding: 5px 30px 5px 10px;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  background: #555;
+  transition: all 0.3s;
+}
+
+.btc-menu-button svg,
+.btc-button svg {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+
+.btc-menu-button path,
+.btc-button path {
+  fill: white;
+}
+
+.btc-menu-button:hover {
+  background: #888;
+}
+
+.btc-menu-button:focus {
+  background: #333;
+}
+
+.btc-debug-button {
+  background: #36d;
+}
+
+.btc-debug-button:hover {
+  background: #69f;
+}
+
+.btc-debug-button:focus {
+  background: #25c;
+}
+
+.btc-server-container {
+  position: absolute;
+  display: flex;
+  flex-flow: column wrap;
+  justify-content: flex-end;
+  width: 100%;
+  bottom: 0;
+}
+
+.btc-server-button-container {
+  display: flex;
+  flex-flow: row nowrap;
+  margin-top: 6px;
+}
+
+.btc-server-button-container .btc-button:first-child {
+  margin-left: 0;
+}
+
+.vehicle-radar {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  border-top-left-radius: 5%;
+  border-top-right-radius: 20%;
+  border-bottom-left-radius: 5%;
+  border-bottom-right-radius: 20%;
+
+  transition: border-radius 0.2s;
+}
+
+.vehicle-radar.closed {
+  border-radius: 50%;
+}
+
+.vehicle-radar:hover,
+.vehicle-radar.closed:hover {
+  border-top-right-radius: 5%;
+
+  transition: border-radius 0.1s;
+}
+
+.vehicle-radar:hover .radar-main-button {
+  opacity: 1;
+  pointer-events: all;
+  transition: 0.2s;
+}
+
+.vehicle-radar.dark {
+  color: white;
+}
+
+.vehicle-radar.light {
+  color: black;
+}
+
+.radar-main-button {
+  display: flex;
+  position: absolute;
+  height: 9.5%;
+  width: 9.5%;
+  right: 8%;
+  margin: 0;
+  padding: 4px;
+  outline: 0;
+  border: 0;
+
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  opacity: 0;
+  pointer-events: none;
+  justify-content: center;
+  align-items: center;
+  transition: 0.1s;
+  transition-delay: 0s;
+  transform: translate(50%, -50%);
+}
+
+.radar-main-button svg {
+  width: 100%;
+  height: 100%;
+}
+
+.radar-main-button path,
+.radar-settings-button path {
+  fill: rgb(255, 255, 255);
+  fill: rgba(255, 255, 255, 0.8);
+  transition: 0.1s;
+}
+
+.radar-main-button:hover {
+  height: 11%;
+  width: 11%;
+  background: rgba(0, 0, 0, 0.5);
+  transition-delay: 0s;
+}
+
+.radar-main-button:hover path,
+.radar-settings-button:hover path {
+  fill: rgb(255, 255, 255);
+  fill: rgba(255, 255, 255, 1);
+}
+
+.radar-main-button#radar-settings-toggle {
+  top: 8%;
+}
+
+.radar-main-button#radar-back {
+  top: 8%;
+}
+
+.radar-main-button#radar-reload {
+  top: 19%;
+}
+
+.radar-main-button.disabled,
+.radar-settings-button.disabled {
+  display: none;
+}
+
+.light .radar-main-button {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.light .radar-main-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.light .radar-main-button path,
+.light .radar-settings-button path {
+  fill: rgb(0, 0, 0);
+  fill: rgba(0, 0, 0, 0.8);
+}
+
+.light .radar-main-button:hover path,
+.light .radar-settings-button:hover path {
+  fill: rgb(0, 0, 0);
+  fill: rgba(0, 0, 0, 1);
+}
+
+.radar-settings-menu {
+  position: absolute;
+  height: 65%;
+  width: 75%;
+  margin: 5%;
+  padding: 5% 0 5% 5%;
+  top: 0;
+  left: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.8);
+  border-top-left-radius: 5%;
+  border-bottom-left-radius: 5%;
+}
+
+.radar-settings-menu.closed {
+  height: 0;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.light .radar-settings-menu {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.radar-settings-group-title {
+  margin: 0;
+  padding-bottom: 2%;
+  margin-bottom: 2%;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.light .radar-settings-group-title {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.5);
+}
+
+.radar-settings-description {
+  margin: 2.5% 0 2.5% 5%;
+  font-size: 15px;
+  font-style: italic;
+}
+
+.radar-settings-input {
+  display: flex;
+  margin-bottom: 4%;
+  flex-flow: column;
+  justify-content: space-between;
+}
+
+.radar-settings-input.text-input input {
+  margin: 1% 0 1% 5%;
+  padding: 0 0 0 10%;
+  width: 25%;
+}
+
+.radar-settings-input.range-input input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 70%;
+  height: 6px;
+  margin-left: 5%;
+  margin-top: 4%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: 0.2s;
+}
+
+.radar-settings-input.range-input input:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.radar-settings-input.range-input input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 24px;
+  background: #ff6600;
+  cursor: pointer;
+}
+
+.radar-settings-input.range-input input::-webkit-slider-thumb:hover {
+  background: #f72;
+}
+
+.light .radar-settings-input.range-input input {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.light .radar-settings-input.range-input input:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.radar-settings-input.radio-input {
+  display: flex;
+  margin-bottom: 4%;
+  flex-flow: column;
+  justify-content: space-between;
+}
+
+.radar-settings-input p {
+  margin: 0;
+  padding: 2% 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.radar-settings-input.radio-input div {
+  margin: 1% 0;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+
+.radar-settings-input.radio-input label {
+  margin-left: 10%;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.radar-settings-input.radio-input input {
+  width: unset;
+  margin-right: 10%;
+}
+
+.radar-settings-button-menu {
+  position: absolute;
+  display: flex;
+  height: 15%;
+  width: 75%;
+  bottom: 2%;
+  left: 5%;
+  right: 5%;
+  border-top: 2px solid rgba(0, 0, 0, 0.8);
+  flex-flow: row nowrap;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.radar-settings-button-menu.closed {
+  display: none;
+}
+
+.radar-settings-button {
+  position: relative;
+  display: flex;
+  height: 30px;
+  width: unset;
+  right: unset;
+  transform: unset;
+  margin: 0;
+  padding: 4px 10px;
+  outline: 0;
+  border: 0;
+
+  border-radius: 5px;
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.8);
+  transition: 0.2s;
+  transition-delay: 0s;
+  pointer-events: all;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.radar-settings-button svg {
+  height: 20px;
+  width: 20px;
+  margin-left: 8px;
+}
+
+.radar-settings-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+  color: rgba(255, 255, 255, 1);
+  transition-delay: 0s;
+}
+
+.light .radar-settings-button {
+  background: rgba(255, 255, 255, 0.5);
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.light .radar-settings-button:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: rgba(0, 0, 0, 1);
+}
+
+#radar-settings-save.radar-settings-button div {
+  position: relative;
+  margin-left: 8px;
+  height: 20px;
+  width: 20px;
+}
+
+#radar-settings-save.radar-settings-button div svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+}
+
+#radar-settings-save.radar-settings-button .save-icon {
+  opacity: 1;
+  transition: 0.1s;
+}
+
+#radar-settings-save.radar-settings-button .check-icon {
+  opacity: 0;
+  transition: 0;
+}
+
+#radar-settings-save.radar-settings-button.saved {
+  background: greenyellow;
+}
+
+#radar-settings-save.radar-settings-button.saved .save-icon {
+  opacity: 0;
+  transition: 0s;
+}
+
+#radar-settings-save.radar-settings-button.saved .check-icon {
+  opacity: 1;
+  transition: 0.1s;
+}
+
+.vehicle-radar.closed .radar-canvas,
+.vehicle-radar.closed .radar-container {
+  width: 100%;
+  height: 100%;
+}
+
+.vehicle-radar:not(.closed) .radar-container {
+  display: none;
+}
+
+.proximity-container {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -10000;
+  background: rgba(0, 0, 255, 0.1);
+  pointer-events: none;
+}
+
+.proximity-container .proximity-canvas {
+  width: 100%;
+  height: 100%;
+}

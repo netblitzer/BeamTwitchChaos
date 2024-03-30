@@ -1,0 +1,104 @@
+---------------------------------------------------
+DONE-----------------------------------------------
+---------------------------------------------------
+fire
+extinguish
+ghost
+dvd
+lights flicker
+day speed
+time of day
+forcefield
+reverse forcefield
+gravity
+fog
+ignition
+change camera
+rotate camera
+sticky throttle
+sticky brake/handbrake
+yank steering wheel
+directional kicks/nudges
+jump
+reset camera
+drop taxi
+drop bus
+drop piano
+drop cone
+squish screen
+narrow screen
+shake screen
+
+---------------------------------------------------
+PARTIAL--------------------------------------------
+---------------------------------------------------
+faulty gear
+  - make it a single gear that's faulty and sometimes pops into neutral while you're in it.
+  - eg 3rd is faulty, while using it sometimes pop to neutral
+pop tire
+  - make it pop wheels off too
+explode
+  - make it so dropping below 50mph or something starts a timer to blow you up
+ad popups
+  - need more
+ai attract
+ai flee
+ghost
+  - make it last longer
+  - make it stick to the car permanently
+  - make it randomly trigger the sticky commands
+negative forcefield
+  - make it pause the AI heys
+flock
+slam the car, zeekay style
+  - fun bug makes the car go warp speed
+
+---------------------------------------------------
+TO DO----------------------------------------------
+---------------------------------------------------
+herd
+x - reverse shifting?
+x - reverse steering?
+x - reverse throttle/brake?
+repair car
+weather
+drop random boxes/props
+delay commands triggering
+fuel (add/remove)
+chat vote for super bad effects
+early access watermarks
+toggle brakes on only one wheels
+swap vehicle?
+wheels pop off
+  - make it so going above some speed starts a timer to pop front wheels off
+bad gps
+moving letterbox screen
+reset gravity
+"adblock"
+  - replaces every ad with a thumbs up person for a few seconds and a sound
+speedboost
+gps voice
+penny throws
+  - 1, 3, 5, 10, 25, 50, 100 bit throws
+windows/discord sounds
+aol/discord messages
+outside the window camera view
+exploding cars if they tip over
+limit steering
+simplified/disable collision physics
+do or die challenges
+  - go X speed
+  - all wheels off the ground
+  - only two wheels off ground
+  - drive X distance in Y time
+  - drive in oncoming for X time
+  - stay above X speed for Y time
+  - drive in reverse for X time
+  - drive in X camera for Y time
+  - jump X distance
+  - do X damage
+  - break X part
+  - drift for X distance/time
+  - do a barrel roll (?)
+  - do a flip (?)
+  - stay still for X time

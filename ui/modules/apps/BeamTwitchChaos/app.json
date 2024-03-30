@@ -1,0 +1,20 @@
+{
+  "name": "Beam <-> Twitch Chaos",
+  "description": "Adds connections to twitch to allow your chat to cause chaos.",
+  "author": "NetBlitzer",
+  "version": "0.0.1",
+  "directive": "beamTwitchChaos",
+  "types": [
+    "ui.apps.categories.utility"
+  ],
+  "domElement": "<beam-twitch-chaos></beam-twitch-chaos>",
+  "css": {
+    "top": "0px",
+    "left": "0px",
+    "width": "250px",
+    "height": "250px",
+    "min-width": "150px",
+    "min-height": "150px"
+  },
+  "preserveAspectRatio": false
+}
