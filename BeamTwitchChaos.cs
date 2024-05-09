@@ -1,222 +1,129 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using CrowdControl.Common;
-using CrowdControl.Games.Packs;
+using JetBrains.Annotations;
 using ConnectorType = CrowdControl.Common.ConnectorType;
+using EffectResponse = ConnectorLib.JSON.EffectResponse;
+using EffectStatus = CrowdControl.Common.EffectStatus;
 
-public class BeamTwitchChaos : SimpleTCPPack {
-    public override string Host { get; } = "0.0.0.0";
-    public override ushort Port { get; } = 43384;
+namespace CrowdControl.Games.Packs.BeamNG;
 
-    public BeamTwitchChaos (IPlayer player, Func<CrowdControlBlock, bool> responseHandler, Action<object> statusUpdateHandler) : base(player, responseHandler, statusUpdateHandler) { }
+[UsedImplicitly]
+public class BeamNG : SimpleTCPPack {
+    public override string Host => "0.0.0.0";
+    public override ushort Port => 43384;
 
-    public override Game Game { get; } = new Game(101, "BeamTwitchChaos", "BeamNG.Drive", "PC", ConnectorType.SimpleTCPServerConnector);
+    public override ISimpleTCPPack.MessageFormat MessageFormat => ISimpleTCPPack.MessageFormat.CrowdControl;
+    public override ISimpleTCPPack.QuantityFormat QuantityFormat => ISimpleTCPPack.QuantityFormat.ParameterAndField;
 
-    public override List<Effect> Effects => new List<Effect>
-    {
-        // UI Effects
-        new Effect("UI Effects", "ui_effect", ItemKind.Folder),
-        new Effect("DVD", "dvd", "ui_effect"),
-        //new Effect("Early Access", "ea", "ui_effect"),
-        //new Effect("Sleep Time", "sleep", "ui_effect"),
-        //new Effect("Soviet Time", "soviet", "ui_effect"),
+    public BeamNG (UserRecord player, Func<CrowdControlBlock, bool> responseHandler, Action<object> statusUpdateHandler) : base(player, responseHandler, statusUpdateHandler) { }
 
-        new Effect("Vehicle Effects", "vehicle_effect", ItemKind.Folder),
-        new Effect("Pop a Tire", "pop", "vehicle_effect"),
-        new Effect("Start a Fire", "fire", "vehicle_effect"),
-        new Effect("Explode", "explode", "vehicle_effect"),
-        new Effect("Extinguish", "extinguish", "vehicle_effect"),
-        new Effect("Faulty Gears", "faultygears", "vehicle_effect"),
-        new Effect("Ghost Doors", "ghostdoors", "vehicle_effect"),
+    public override Game Game { get; } = new("BeamNG.Drive", "BeamNG", "PC", ConnectorType.SimpleTCPServerConnector);
 
-        new Effect("Environment Effects", "env_effect", ItemKind.Folder),
-        new Effect("Randomize Gravity", "gravity", "env_effect"),
-        new Effect("Randomize Fog", "fog", "env_effect"),
-        new Effect("Set Time to Day", "daytime", "env_effect"),
-        new Effect("Set Time to Night", "nighttime", "env_effect"),
-        new Effect("Set Time to Random", "randomtime", "env_effect"),
-        new Effect("Change the Time Scale", "timescale", "env_effect"),
+    public static ParameterDef GravityParameters { get; } = new ParameterDef("Gravity", "gravity",
+        new Parameter("Pluto", "grav_pluto"),
+        new Parameter("Moon", "grav_moon"),
+        new Parameter("Mars", "grav_mars"),
+        new Parameter("Venus", "grav_venus"),
+        new Parameter("Saturn", "grav_saturn"),
+        new Parameter("Double Earth", "grav_double_earth"),
+        new Parameter("Jupiter", "grav_jupiter")
+    );
 
-        new Effect("Test", "test")
+    public static ParameterDef SimspeedParameters { get; } = new ParameterDef("Sim Speed", "simspeed", 
+        new Parameter("Real Speed", "time_1"),
+        new Parameter("Half Speed", "time_2"),
+        new Parameter("1/4 Speed", "time_4"),
+        new Parameter("1/8 Speed", "time_8"),
+        new Parameter("1/16 Speed", "time_16")   
+    );
 
-        //General Effects
-        //new Effect("Trigger the Killswitch", "kill"),
-        //new Effect("Poison the Player", "poison"),
-        //new Effect("Glass Legs", "glass_legs"),
-        //new Effect("Give Health (x10)", "give_health",new[]{"amount100"}),
-        //new Effect("Set On Fire", "set_fire"),
-        //new Effect("Full Heal", "full_heal"),
-        //new Effect("Drunk Mode (1 minute)", "drunk_mode"),
-        //new Effect("Drop Selected Item", "drop_selected_item"),
-        //new Effect("Enable Matrix Mode (1 Minute)", "matrix"),
-        //new Effect("Give Player EMP Field (15 seconds)", "emp_field"),
-        //new Effect("Give Bioelectric Energy (x10)", "give_energy",new[]{"amount100"}),
-        //new Effect("Give Skill Points (x100)", "give_skillpoints",new[]{"skillpoints1000"}), //Updated text for second Crowd Control batch
-        //new Effect("Remove Skill  Points (x100)", "remove_skillpoints",new[]{"skillpoints1000"}), //Updated text for second Crowd Control batch
-        //new Effect("Disable Jump (1 minute)", "disable_jump"),
-        //new Effect("Gotta Go Fast (1 minute)", "gotta_go_fast"),
-        //new Effect("Slow Like Snail (1 minute)", "gotta_go_slow"),
-        //new Effect("Ice Physics! (1 minute)","ice_physics"),
-        //new Effect("Go Third-Person (1 minute)","third_person"),
-        //new Effect("Take Double Damage (1 minute)","dmg_double"),
-        //new Effect("Take Half Damage (1 minute)","dmg_half"),
-        //new Effect("Give Credits (x100)", "add_credits",new[]{"credits1000"}), //Updated for text second Crowd Control batch
-        //new Effect("Remove Credits (x100)", "remove_credits",new[]{"credits1000"}), //Updated text for second Crowd Control batch
-        //new Effect("Upgrade a Flamethrower to a LAMThrower (1 minute)", "lamthrower"),
-        //
-        //new Effect ("Ask a Question","ask_a_question"), //New for second Crowd Control batch
-        //new Effect ("Nudge","nudge"), //New for second Crowd Control batch
-        //new Effect ("Swap Player with another human","swap_player_position"), //New for second Crowd Control batch
-        //new Effect ("Float Away","floaty_physics"), //New for second Crowd Control batch
-        //new Effect ("Floor is Lava","floor_is_lava"), //New for second Crowd Control batch
-        //new Effect ("Invert Mouse Controls","invert_mouse"), //New for second Crowd Control batch
-        //new Effect ("Invert Movement Controls","invert_movement"), //New for second Crowd Control batch
-        //new Effect ("Earthquake","earthquake"), //New for fourth Crowd Control batch
-        //new Effect ("Full Bioelectric Energy","give_full_energy"), //New for fourth Crowd Control batch
-        //new Effect ("Trigger all alarms","trigger_alarms"), //New for fourth Crowd Control batch
-        //new Effect ("Flip camera upside down","flipped"), //New for fourth Crowd Control batch
-        //new Effect ("Flip camera sideways","limp_neck"), //New for fourth Crowd Control batch
-        //new Effect ("Do a barrel roll!","barrel_roll"), //New for fourth Crowd Control batch
-        //new Effect ("Set off a Flashbang", "flashbang"), //New for fourth Crowd Control batch
-        //new Effect ("Eat Beans", "eat_beans"), //New for fourth Crowd Control batch
-        //new Effect ("Fire the current weapon", "fire_weapon"), //New for fourth Crowd Control batch
-        //new Effect ("Switch to next item", "next_item"), //New for fourth Crowd Control batch
-        //new Effect ("Switch to next HUD color scheme", "next_hud_color"), //New for fourth Crowd Control batch
-        //new Effect ("Quick Save", "quick_save"), //New for fourth Crowd Control batch
-        //new Effect ("Quick Load", "quick_load"), //New for fourth Crowd Control batch
-        //
-        ////Spawn Enemies/Allies
-        //new Effect("Spawn Enemies/Allies","spawnpawns",ItemKind.Folder), //New for fourth Crowd Control batch
-        //new Effect ("Spawn Medical Bot", "spawnfriendly_medicalbot","spawnpawns"), //New for fourth Crowd Control batch
-        //new Effect ("Spawn Repair Bot", "spawnfriendly_repairbot","spawnpawns"), //New for fourth Crowd Control batch
-        //new Effect ("Spawn hostile Spider Bot", "spawnenemy_spiderbot2","spawnpawns"), //New for fourth Crowd Control batch
-        //new Effect ("Spawn hostile MJ12 Commando", "spawnenemy_mj12commando","spawnpawns"), //New for fourth Crowd Control batch
-        //new Effect ("Spawn hostile Security Bot", "spawnenemy_securitybot4","spawnpawns"), //New for fourth Crowd Control batch
-        //new Effect ("Spawn friendly Security Bot", "spawnfriendly_securitybot4","spawnpawns"), //New for fourth Crowd Control batch
-        //new Effect ("Spawn hostile Military Bot", "spawnenemy_militarybot","spawnpawns"), //New for fourth Crowd Control batch
-        //new Effect ("Spawn friendly Military Bot", "spawnfriendly_militarybot","spawnpawns"), //New for fourth Crowd Control batch
-        //new Effect ("Spawn hostile Doberman", "spawnenemy_doberman","spawnpawns"), //New for fourth Crowd Control batch
-        //new Effect ("Spawn hostile Greasel", "spawnenemy_greasel","spawnpawns"), //New for fourth Crowd Control batch
-        //
-        ////Items
-        //new Effect("Give Items","giveitems",ItemKind.Folder), //New folder for third batch
-        //new Effect("Give a Medkit", "give_medkit", "giveitems"), //Moved into new folder for third batch
-        //new Effect("Give a Biocell", "give_bioelectriccell", "giveitems"), //Moved into new folder for third batch
-        //new Effect("Give a Fire Extinguisher", "give_fireextinguisher", "giveitems"), //New for third Crowd Control batch
-        //new Effect("Give a Ballistic Armor", "give_ballisticarmor", "giveitems"), //New for third Crowd Control batch
-        //new Effect("Give a Lockpick", "give_lockpick", "giveitems"), //New for third Crowd Control batch
-        //new Effect("Give a Multitool", "give_multitool", "giveitems"), //New for third Crowd Control batch
-        //new Effect("Give a Rebreather", "give_rebreather", "giveitems"), //New for third Crowd Control batch
-        //new Effect("Give a Thermoptic Camo", "give_adaptivearmor", "giveitems"), //New for third Crowd Control batch
-        //new Effect("Give a HazMat Suit", "give_hazmatsuit", "giveitems"), //New for third Crowd Control batch
-        //new Effect("Give a bottle of Wine", "give_winebottle", "giveitems"), //New for Fourth Crowd Control batch
-        //new Effect("Give a set of Tech Goggles", "give_techgoggles", "giveitems"), //New for Fourth Crowd Control batch
-        //
-        ////Add/Remove Augs
-        //new Effect("Add/Upgrade Augmentations","addaugs",ItemKind.Folder),
-        //new Effect("Remove/Downgrade Augmentations","remaugs",ItemKind.Folder),
-        //
-        //new Effect("Add/Upgrade Aqualung", "add_augaqualung", "addaugs"),
-        //new Effect("Add/Upgrade Ballistic Protection", "add_augballistic", "addaugs"),
-        //new Effect("Add/Upgrade Cloak", "add_augcloak", "addaugs"),
-        //new Effect("Add/Upgrade Combat Strength", "add_augcombat", "addaugs"),
-        //new Effect("Add/Upgrade Aggressive Defense System", "add_augdefense", "addaugs"),
-        //new Effect("Add/Upgrade Spy Drone", "add_augdrone", "addaugs"),
-        //new Effect("Add/Upgrade EMP Shield", "add_augemp", "addaugs"),
-        //new Effect("Add/Upgrade Environmental Resistance", "add_augenviro", "addaugs"),
-        //new Effect("Add/Upgrade Regeneration", "add_aughealing", "addaugs"),
-        //new Effect("Add/Upgrade Synthetic Heart", "add_augheartlung", "addaugs"),
-        //new Effect("Add/Upgrade Microfibral Muscle", "add_augmuscle", "addaugs"),
-        //new Effect("Add/Upgrade Power Recirculator", "add_augpower", "addaugs"),
-        //new Effect("Add/Upgrade Radar Transparancy", "add_augradartrans", "addaugs"),
-        //new Effect("Add/Upgrade Energy Shield", "add_augshield", "addaugs"),
-        //new Effect("Add/Upgrade Speed Enhancement", "add_augspeed", "addaugs"),
-        //new Effect("Add/Upgrade Run Silent", "add_augstealth", "addaugs"),
-        //new Effect("Add/Upgrade Targeting", "add_augtarget", "addaugs"),
-        //new Effect("Add/Upgrade Vision Enhancement", "add_augvision", "addaugs"),
-        //
-        //new Effect("Remove/Downgrade Aqualung", "rem_augaqualung", "remaugs"),
-        //new Effect("Remove/Downgrade Ballistic Protection", "rem_augballistic", "remaugs"),
-        //new Effect("Remove/Downgrade Cloak", "rem_augcloak", "remaugs"),
-        //new Effect("Remove/Downgrade Combat Strength", "rem_augcombat", "remaugs"),
-        //new Effect("Remove/Downgrade Aggressive Defense System", "rem_augdefense", "remaugs"),
-        //new Effect("Remove/Downgrade Spy Drone", "rem_augdrone", "remaugs"),
-        //new Effect("Remove/Downgrade EMP Shield", "rem_augemp", "remaugs"),
-        //new Effect("Remove/Downgrade Environmental Resistance", "rem_augenviro", "remaugs"),
-        //new Effect("Remove/Downgrade Regeneration", "rem_aughealing", "remaugs"),
-        //new Effect("Remove/Downgrade Synthetic Heart", "rem_augheartlung", "remaugs"),
-        //new Effect("Remove/Downgrade Microfibral Muscle", "rem_augmuscle", "remaugs"),
-        //new Effect("Remove/Downgrade Power Recirculator", "rem_augpower", "remaugs"),
-        //new Effect("Remove/Downgrade Radar Transparancy", "rem_augradartrans", "remaugs"),
-        //new Effect("Remove/Downgrade Energy Shield", "rem_augshield", "remaugs"),
-        //new Effect("Remove/Downgrade Speed Enhancement", "rem_augspeed", "remaugs"),
-        //new Effect("Remove/Downgrade Run Silent", "rem_augstealth", "remaugs"),
-        //new Effect("Remove/Downgrade Targeting", "rem_augtarget", "remaugs"),
-        //new Effect("Remove/Downgrade Vision Enhancement", "rem_augvision", "remaugs"),
-        //
-        //
-        ////Drop Grenades
-        //new Effect("Drop a live grenade","dropgrenade",ItemKind.Folder),
-        //
-        //new Effect("Drop a Live LAM", "drop_lam", "dropgrenade"),
-        //new Effect("Drop a Live EMP Grenade", "drop_empgrenade", "dropgrenade"),
-        //new Effect("Drop a Live Gas Grenade", "drop_gasgrenade", "dropgrenade"),
-        //new Effect("Drop a Live Scrambler Grenade", "drop_nanovirusgrenade", "dropgrenade"),
-        //
-        //
-        ////Weapons
-        //new Effect("Give Weapons","giveweapon",ItemKind.Folder),
-        //
-        //new Effect("Give Flamethrower", "give_weaponflamethrower", "giveweapon"),
-        //new Effect("Give GEP Gun", "give_weapongepgun", "giveweapon"),
-        //new Effect("Give Dragon Tooth Sword", "give_weaponnanosword", "giveweapon"),
-        //new Effect("Give Plasma Rifle", "give_weaponplasmarifle", "giveweapon"),
-        //new Effect("Give LAW", "give_weaponlaw", "giveweapon"),
-        //new Effect("Give Sniper Rifle", "give_weaponrifle", "giveweapon"),
-        //new Effect("Give Assault Rifle", "give_weaponassaultgun", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Assault Shotgun", "give_weaponassaultshotgun", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Baton", "give_weaponbaton", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Combat Knife", "give_weaponcombatknife", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Crowbar", "give_weaponcrowbar", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Mini Crossbow", "give_weaponminicrossbow", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Pepper Spray", "give_weaponpeppergun", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Pistol", "give_weaponpistol", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Stealth Pistol", "give_weaponstealthpistol", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Riot Prod", "give_weaponprod", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Sawed-off Shotgun", "give_weaponsawedoffshotgun", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Throwing Knives", "give_weaponshuriken", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Sword", "give_weaponsword", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give LAM", "give_weaponlam", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give EMP Grenade", "give_weaponempgrenade", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Gas Grenade", "give_weapongasgrenade", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give Scrambler Grenade", "give_weaponnanovirusgrenade", "giveweapon"),  //New for second Crowd Control batch
-        //new Effect("Give PS40","give_weaponhideagun","giveweapon"),
-        //
-        ////Ammo
-        //new Effect("Give Ammo","giveammo",ItemKind.Folder),
-        //
-        //new Effect("Give 10mm Ammo (Pistols)", "give_ammo10mm",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give 20mm Ammo (Assault Rifle)", "give_ammo20mm",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give 7.62mm Ammo (Assault Rifle)", "give_ammo762mm",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give 30.06mm Ammo (Sniper Rifle)", "give_ammo3006",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Prod Charger", "give_ammobattery",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Darts", "give_ammodart",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Flare Darts", "give_ammodartflare",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Tranq Darts", "give_ammodartpoison",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Napalm", "give_ammonapalm",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Pepper Spray Ammo", "give_ammopepper",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Plasma", "give_ammoplasma",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Rockets", "give_ammorocket",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give WP Rockets", "give_ammorocketwp",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Sabot Shells", "give_ammosabot",new[]{"amount100"},"giveammo"), //New for second Crowd Control batch
-        //new Effect("Give Shotgun Shells", "give_ammoshell",new[]{"amount100"},"giveammo") //New for second Crowd Control batch
+    public override EffectList Effects { get; } = new Effect[] {
+        new("Add a DVD Logo", "dvd") { Price = 15, Description = "Something everyone in chat can watch", Quantity = new QuantityRange(1, 10), DefaultQuantity = 1, Category = new EffectGrouping("UI Effects") },
+        new("Add an Ad", "ad") { Price = 15, Description = "You've won a new car!", Quantity = new QuantityRange(1, 10), DefaultQuantity = 1, Category = new EffectGrouping("UI Effects") },
+        new("Narrow the Screen", "view_narrow") { Price = 40, Description = "We can see too much, can you do something about that?", Category = new EffectGrouping("UI Effects") },
+        new("Squish the Screen", "view_squish") { Price = 40, Description = "We can see too much, can you do something about that?", Category = new EffectGrouping("UI Effects") },
+        // new("Shake the Screen", "view_shake") { Price = 80, Description = "Add some drama", Category = new EffectGrouping("UI") },
+        new("Clear the Screen", "uireset") { Price = 15, Description = "Can we see again?", Category = new EffectGrouping("UI Effects") },
+
+        new("Pop a Tire", "pop") { Price = 150, Description = "Make it a bit harder to drive", Category = new EffectGrouping("Vehicle Effects") },
+        new("Start a Fire", "fire") { Price = 400, Description = "Everyone knows Twitch likes a hot stream", Category = new EffectGrouping("Vehicle Effects") },
+        new("Explode", "explode") { Price = 1200, Description = "When the stream is going a little *too* well", Category = new EffectGrouping("Vehicle Effects") },
+        new("Extinguish", "extinguish") { Price = 25, Description = "Give the streamer a second chance", Category = new EffectGrouping("Vehicle Effects") },
+        new("Ghost", "ghost") { Price = 50, Description = "Invite a ghost to the party", Category = new EffectGrouping("Vehicle Effects") },
+        new("Toggle the Ignition", "ignition") { Price = 50, Description = "Jiggle the car keys", Category = new EffectGrouping("Vehicle Effects") },
+        new("Set off the Alarm", "alarm") { Price = 50, Description = "I think someone might be trying to break into our car", Category = new EffectGrouping("Vehicle Effects") },
+        new("Slam the Car", "slam") { Price = 50, Description = "Slam the car, ZeeKay style", Category = new EffectGrouping("Vehicle Effects") },
+        new("Randomize the Paint", "random_paint") { Price = 20, Description = "Let's get some fresh new paint", Category = new EffectGrouping("Vehicle Effects") },
+        new("Randomize the Tune", "random_tune") { Price = 200, Description = "I know how to tune, trust me", Category = new EffectGrouping("Vehicle Effects") },
+        new("Randomize the Parts", "random_part") { Price = 1000, Description = "Let's order some cool new parts", Category = new EffectGrouping("Vehicle Effects") },
+        //new("Damage a Part", "random_damage") { Price = 50, Description = "Give something a break", Category = new EffectGrouping("Vehicle Effects") },
+        //new("Repair the Car", "repair") { Price = 50, Description = "Nothing a bit of percussive maintenance can't fix", Category = new EffectGrouping("Vehicle Effects") },
+        new("Turn on the Forcefield", "forcefield") { Price = 75, Description = "Push everything away", Category = new EffectGrouping("Vehicle Effects") },
+        new("Turn on the Negative Forcefield", "attractfield") { Price = 250, Description = "Pull everything in", Category = new EffectGrouping("Vehicle Effects") },
+        new("Turn Around (Fast)", "spin") { Price = 200, Description = "I think we're going the wrong way", Category = new EffectGrouping("Vehicle Effects") },
+        new("Bump the Car Left", "nudge_l") { Price = 50, Description = "Give it a bit of a push", Category = new EffectGrouping("Vehicle Effects") },
+        new("Bump the Car Right", "nudge_r") { Price = 50, Description = "Give it a bit of a push", Category = new EffectGrouping("Vehicle Effects") },
+        new("Kick the Car Left", "kick_l") { Price = 175, Description = "Ok now you might be going too far", Category = new EffectGrouping("Vehicle Effects") },
+        new("Kick the Car Right", "kick_r") { Price = 175, Description = "Ok now you might be going too far", Category = new EffectGrouping("Vehicle Effects") },
+        new("Jump the Car", "jump_l") { Price = 100, Description = "Woah, sick jump!", Category = new EffectGrouping("Vehicle Effects") },
+        new("Jump the Car Really High", "jump_h") { Price = 300, Description = "Hang on, are you a superhero?!", Category = new EffectGrouping("Vehicle Effects") },
+        new("Tilt the Car Left", "tilt_l") { Price = 100, Description = "What's better than cow tipping?", Category = new EffectGrouping("Vehicle Effects") },
+        new("Tilt the Car Right", "tilt_r") { Price = 100, Description = "What's better than cow tipping?", Category = new EffectGrouping("Vehicle Effects") },
+        new("Do a Barrel Roll Left", "roll_l") { Price = 300, Description = "Ackshually it's not a barrel roll", Category = new EffectGrouping("Vehicle Effects") },
+        new("Do a Barrel Roll Right", "roll_r") { Price = 300, Description = "Ackshually it's not a barrel roll", Category = new EffectGrouping("Vehicle Effects") },
+        new("Give a Small Boost", "boost_l") { Price = 50, Description = "Is this one of those video games?", Category = new EffectGrouping("Vehicle Effects") },
+        new("Rocket Boost", "boost_h") { Price = 200, Description = "Time to go Sonic Fast", Category = new EffectGrouping("Vehicle Effects") },
+        new("Do a Kickflip", "kickflip") { Price = 350, Description = "Did you know you look a lot like Tony Hawk?", Category = new EffectGrouping("Vehicle Effects") },
+        //new("Skip the Car", "skip") { Price = 100, Description = "Skipping is a healthy way to move around", Category = new EffectGrouping("Vehicle Effects") },
+        new("Sticky Throttle", "sticky_throttle") { Price = 125, Description = "Onward!", Category = new EffectGrouping("Vehicle Effects") },
+        new("Sticky Handbrake", "sticky_parkingbrake") { Price = 125, Description = "Do a drift!", Category = new EffectGrouping("Vehicle Effects") },
+        new("Sticky Brake", "sticky_brake") { Price = 75, Description = "We're going too fast!", Category = new EffectGrouping("Vehicle Effects") },
+        new("Yank the Wheel Left", "sticky_turn_l") { Price = 150, Description = "Was that our exit?", Category = new EffectGrouping("Vehicle Effects") },
+        new("Yank the Wheel Right", "sticky_turn_r") { Price = 150, Description = "Was that our exit?", Category = new EffectGrouping("Vehicle Effects") },
+        // new("Invert the Steering", "invert_steering") { Price = 250, Description = "", Category = new EffectGrouping("Vehicle Effects") },
+        // new("Invert the Throttle/Brake", "invert_forward") { Price = 250, Description = "", Category = new EffectGrouping("Vehicle Effects") },
+
+        new("Change the Camera", "camera_change") { Price = 75, Description = "What were we looking at?", Category = new EffectGrouping("Camera Effects") },
+        new("Pan the Camera Left", "camera_left") { Price = 25, Description = "This one spins us", Category = new EffectGrouping("Camera Effects") },
+        new("Pan the Camera Right", "camera_right") { Price = 25, Description = "This one spins us", Category = new EffectGrouping("Camera Effects") },
+        new("Pan the Camera Up", "camera_up") { Price = 25, Description = "This one spins us", Category = new EffectGrouping("Camera Effects") },
+        new("Pan the Camera Down", "camera_down") { Price = 25, Description = "This one spins us", Category = new EffectGrouping("Camera Effects") },
+        new("Zoom the Camera In", "camera_in") { Price = 50, Description = "This brings us closer", Category = new EffectGrouping("Camera Effects") },
+        new("Zoom the Camera Out", "camera_out") { Price = 50, Description = "This moves us further", Category = new EffectGrouping("Camera Effects") },
+        new("Reset the Camera", "camera_reset") { Price = 15, Description = "Can we see again?", Category = new EffectGrouping("Camera Effects") },
+        //new("Mess with the Camera FOV", "camerafov") { Price = 50, Description = "This moves us further", Category = new EffectGrouping("Camera Effects") },
+        //new("Birthday Dance", "birthday") { Price = 75, Description = "Dance the night away!", Category = new EffectGrouping("Camera Effects") },
+
+        new("Set Gravity", "gravity") { Price = 150, Description = "Hope we're not going over a jump", Parameters = GravityParameters, Category = new EffectGrouping("Environment Effects") },
+        new("Set Simulation scale", "simspeed") { Price = 100, Description = "We need to see that in slow-mo!", Parameters = SimspeedParameters, Category = new EffectGrouping("Environment Effects") },
+        new("Randomize Fog", "fog") { Price = 100, Description = "Sight is for those who don't want to crash", Category = new EffectGrouping("Environment Effects") },
+        new("Increase Fog", "fogup") { Price = 40, Description = "Chat says \"We don't want to see\"", Category = new EffectGrouping("Environment Effects") },
+        new("Decrease Fog", "fogdown") { Price = 40, Description = "Chat says \"Actually can we see\"", Category = new EffectGrouping("Environment Effects") },
+        new("Set Time to Night", "nighttime") { Price = 25, Description = "Hope you still have headlights", Category = new EffectGrouping("Environment Effects") },
+        new("Set Time to Day", "daytime") { Price = 25, Description = "FLASHBANG!", Category = new EffectGrouping("Environment Effects") },
+        new("Set Time to Random", "randomtime") { Price = 25, Description = "We'll get there when we get there", Category = new EffectGrouping("Environment Effects") },
+        new("Randomize the Day/Night Cycle", "timescale") { Price = 75, Description = "What sort of universe is this?", Category = new EffectGrouping("Environment Effects") },
+        new("Move Time Forward", "timeforward") { Price = 15, Description = "Some want the future", Category = new EffectGrouping("Environment Effects") },
+        new("Move Time Backward", "timebackward") { Price = 15, Description = "Some want the past", Category = new EffectGrouping("Environment Effects") },
+
+        
+        //new("Set AI to Random", "airandom"),
+        //new("Anger the AI", "aianger") { Price = 50, Description = "Road rage time" },
+        //new("Calm the AI", "aicalm") { Price = 25, Description = "Everyone's a grandma" },
+        // new("Make Friends with the AI", "heyai") { Price = 25, Description = "Everyone's a villager?", Category = new EffectGrouping("Fun Effects") },
+        new("Toss a Cone to Your Streamer", "drop_cone") { Price = 10, Description = "Oh Twitch of Plenty", Category = new EffectGrouping("Fun Effects") },
+        new("Drop a Piano", "drop_piano") { Price = 100, Description = "Make some music", Category = new EffectGrouping("Fun Effects") },
+        new("Flock of Birds", "drop_flock") { Price = 500, Description = "Toss some bread crumbs in the back, I heard that attracts lots of birds", Category = new EffectGrouping("Fun Effects") },
+        new("Get a Bus", "drop_bus") { Price = 300, Description = "Looks like that's your bus, better call it over", Category = new EffectGrouping("Fun Effects") },
+        new("Hail a Cab", "drop_taxi") { Price = 200, Description = "TAXI!", Category = new EffectGrouping("Fun Effects") },
+        new("Traffic Jam", "drop_traffic") { Price = 500, Description = "Cause a traffic jam", Category = new EffectGrouping("Fun Effects") },
+        new("Get a Ramp", "drop_ramp") { Price = 250, Description = "Let's jump this thing", Category = new EffectGrouping("Fun Effects") },
+
+        // new("Crowd Control Effects", "cc_effect", ItemKind.Folder),
+        // new("Throttle (1 second)", "cc_throttle_1", "cc_effect") { Price = 2, Description = "Throttle for one second" },
+        // new("Throttle (3 second)", "cc_throttle_3", "cc_effect") { Price = 5, Description = "Throttle for three seconds" },
+        // new("Throttle (5 second)", "cc_throttle_5", "cc_effect") { Price = 10, Description = "Throttle for three seconds" },
     };
-
-    //Slider ranges need to be defined
-    public override List<ItemType> ItemTypes => new List<ItemType>(new[]
-    {
-        new ItemType("Credits", "credits1000", ItemType.Subtype.Slider, "{\"min\":1,\"max\":1000}"),
-        new ItemType("Skill Points", "skillpoints1000", ItemType.Subtype.Slider, "{\"min\":1,\"max\":1000}"),
-        new ItemType("Amount","amount100",ItemType.Subtype.Slider, "{\"min\":1,\"max\":100}")
-    });   
 }

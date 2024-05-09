@@ -123,7 +123,7 @@ local function init ()
     curCounts[k] = 0
 
     local i = 0
-    local playerVehId = be:getPlayerVehicle(0):getId()
+    local playerVehId = playerVeh and playerVeh:getId() or nil
     for i = 0, be:getObjectCount() - 1 do
       local vehTest = be:getObject(i)
       if vehTest:getId() ~= playerVehId and vehTest.jbeam == v.model and vehTest.partConfig == v.config and curCounts[k] < v.maxCount then
@@ -145,7 +145,7 @@ local function init ()
   if settings.debug and settings.debugVerbose then
     dump(pools)
   end
-  be:enterVehicle(0, playerVeh)
+  if playerVeh then be:enterVehicle(0, playerVeh) end
 end
 
 local function setSettings (set)
@@ -154,6 +154,10 @@ local function setSettings (set)
 end
 
 local function parseCommand (commandIn, currentLevel, commandId)
+  if not commandIn then
+    return
+  end
+
   local command, option = commandIn:match("([^_]+)_([^_]+)")
   if command == 'drop' then
     if option == 'cone' then
@@ -415,7 +419,7 @@ local function handlePropBasic (dt, poolName, velOffset, posOffset)
     if v.active then
       v.lifeLeft = math.max(0, v.lifeLeft - dt)
 
-      if v.lifeLeft == 0 then
+      if v.lifeLeft == 0 and pools[poolName].p.activeVehs[1] ~= nil then
         local nextProp = be:getObjectByID(pools[poolName].p.activeVehs[1])
         if nextProp then
           nextProp:setActive(0)
@@ -471,6 +475,8 @@ local function handleFlock (dt)
     if k == 'anyActive' then goto skip end
 
     if v.active then
+      local player = be:getPlayerVehicle(0)
+      local playerPos = player:getPosition()
       for k2, v2 in pairs(v.props) do
         if k2 == 'count' then goto skip2 end
         
@@ -478,8 +484,6 @@ local function handleFlock (dt)
           v2.lifeLeft = math.max(0, v2.lifeLeft - dt)
           local nextProp = be:getObjectByID(k2)
           if nextProp then
-            local player = be:getPlayerVehicle(0)
-            local playerPos = player:getPosition()
             --nextProp:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f})', playerPos.x, playerPos.y, playerPos.z, 25, 1e15))
           end
 
@@ -503,14 +507,13 @@ local function handleFlock (dt)
       end
 
       if v.pauseTime <= 0 and v.count > 0 then
-        local player = be:getPlayerVehicle(0)
-        local playerPos = player:getPosition()
         local playerDirection = player:getDirectionVector()
         local playerUp = player:getDirectionVectorUp()
         local playerRight = playerUp:cross(playerDirection)
         local playerVel = player:getVelocity()
 
         local propType =  v.count % 2 == 1 and 'wigeon' or 'pigeon'
+        if #pools[propType].p.inactiveVehs == 0 then propType = propType == 'wigeon' and 'pigeon' or 'wigeon' end
         local nextProp = be:getObjectByID(pools[propType].p.inactiveVehs[1])
         local nextHeight = core_environment.getGravity() * -2
         local sideOffsetMod = v.direction == 1 and -1 or 1
@@ -522,7 +525,7 @@ local function handleFlock (dt)
           nextProp:setPosRot(nextPos.x, nextPos.y, nextPos.z, nextRot.x, nextRot.y, nextRot.z, nextRot.w)
           nextProp:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f})', playerPos.x, playerPos.y, playerPos.z, 25, 1e15))
           local nextPropID = nextProp:getId()
-          core_vehicle_manager.setVehiclePaintsNames(nextPropID, {gameplay_traffic.getRandomPaint(nextPropID, 0.75), false})
+          core_vehicle_manager.setVehiclePaintsNames(nextPropID, {getRandomPaint(nextPropID, 0.75), false})
 
           v.props[nextPropID] = {
             active = true,
@@ -644,7 +647,7 @@ local function handleTick (dt)
       handleForcefield(dt)
     end
   else
-    handleVehicleLoading(dt)
+    handleVehicleLoading(dt / simTimeAuthority.get())
   end
 end
 
@@ -655,6 +658,22 @@ local function onFirstUpdate ()
 end
 
 local function onClientPostStartMission ()
+  if core_gamestate.state and (core_gamestate.state.state == "freeroam") then
+    log("I", logTag, "Vehicles need to be reloaded")
+    M.ready = false
+    vehicleLoadTimer = vehicleLoadTimerReset
+  end
+end
+
+local function onMissionChanged (state, mission)
+  if mission and state == "started" then
+    log("I", logTag, "Vehicles need to be reloaded")
+    M.ready = false
+    vehicleLoadTimer = vehicleLoadTimerReset
+  end
+end
+
+local function onMissionEnd ()
   M.ready = false
   vehicleLoadTimer = vehicleLoadTimerReset
 end
@@ -662,15 +681,19 @@ end
 local function onExtensionLoaded ()
   M.ready = false
   vehicleLoadTimer = vehicleLoadTimerReset
+
+  setExtensionUnloadMode(M, "manual")
 end
 
 local function onExtensionUnloaded ()
   for a, b in pairs(pools) do
-    for _, v in pairs(b.p.allVehs) do
-      be:getObjectByID(v):delete()
-    end
-    if b.p[deletePool] then
-      b.p:deletePool()
+    if b.p.allVehs then
+      for _, v in pairs(b.p.allVehs) do
+        if be:getObjectByID(v) then be:getObjectByID(v):delete() end
+      end
+      if b.p[deletePool] then
+        b.p:deletePool()
+      end
     end
   end
 end
@@ -703,6 +726,8 @@ M.onDeserialized = onDeserialized
 M.onExtensionUnloaded       = onExtensionUnloaded
 M.onExtensionLoaded         = onExtensionLoaded
 M.onFirstUpdate             = onFirstUpdate
+M.onAnyMissionChanged       = onMissionChanged
 M.onClientPostStartMission  = onClientPostStartMission
+M.onMissionEnd              = onMissionEnd
 
 return M

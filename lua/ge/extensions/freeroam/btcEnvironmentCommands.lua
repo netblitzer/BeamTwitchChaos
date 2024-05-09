@@ -15,6 +15,11 @@ local persistData = {
     lifeLeft = 0,
     amount = -9.81,
   },
+  simspeed = {
+    active = false,
+    lifeLeft = 0,
+    amount = 1,
+  },
   fog = {
     active = false,
     lifeLeft = 0,
@@ -47,6 +52,10 @@ local function setSettings (set)
 end
 
 local function parseCommand (commandIn, currentLevel, commandId, params)
+  if not commandIn then
+    return
+  end
+  
   local command, option = commandIn:match("([^_]+)_([^_]+)")
   
   if commandIn == 'fog' then
@@ -69,6 +78,8 @@ local function parseCommand (commandIn, currentLevel, commandId, params)
     commands.alterFog(currentLevel, -1)
   elseif commandIn == 'gravity' then
     commands.alterGravity(currentLevel, params)
+  elseif commandIn == 'simspeed' then
+    commands.alterSimspeed(currentLevel, params)
     
   end
 end
@@ -122,20 +133,21 @@ local function alterGravity (level, params)
   local lastAmount = persistData.gravity.amount or -9.81
 
   if params then
-    dump(params)
-    if params[1] == 'grav_pluto' then
+    if settings.debug and settings.debugVerbose then dump(params) end
+    local value = params.parameters.gravity.value
+    if value == 'grav_pluto' then
       amount = -0.58
-    elseif params[1] == 'grav_moon' then
+    elseif value == 'grav_moon' then
       amount = -1.62
-    elseif params[1] == 'grav_mars' then
+    elseif value == 'grav_mars' then
       amount = -3.71
-    elseif params[1] == 'grav_venus' then
+    elseif value == 'grav_venus' then
       amount = -8.87
-    elseif params[1] == 'grav_saturn' then
+    elseif value == 'grav_saturn' then
       amount = -10.44
-    elseif params[1] == 'grav_double_earth' then
+    elseif value == 'grav_double_earth' then
       amount = -19.62
-    elseif params[1] == 'grav_jupiter' then
+    elseif value == 'grav_jupiter' then
       amount = -24.92
     end
   end
@@ -150,6 +162,34 @@ local function alterGravity (level, params)
     lerpTime = 0,
   }
   core_environment.setGravity(lastAmount)
+end
+
+local function alterSimspeed (level, params)
+  local amount = persistData.simspeed.amount or 1
+
+  if params then
+    if settings.debug and settings.debugVerbose then dump(params) end
+    local value = params.parameters.simspeed.value
+    if value == 'time_1' then
+      amount = 1
+    elseif value == 'time_2' then
+      amount = 0.5
+    elseif value == 'time_4' then
+      amount = 0.25
+    elseif value == 'time_8' then
+      amount = 0.125
+    elseif value == 'time_16' then
+      amount = 0.0625
+    end
+  end
+
+  persistData.simspeed = {
+    active = true,
+    level = level,
+    lifeLeft = math.max(persistData.simspeed.lifeLeft, math.max(8, 1 + level)),
+    amount = amount,
+  }
+  simTimeAuthority.set(amount)
 end
 
 local function alterFog (level, dir)
@@ -180,6 +220,7 @@ local function increaseTimeScale (level)
 end
 
 commands.alterGravity       = alterGravity
+commands.alterSimspeed      = alterSimspeed
 commands.alterFog           = alterFog
 commands.increaseTimeScale  = increaseTimeScale
 
@@ -209,6 +250,19 @@ local function handleAlteredGravity (dt)
       persistData.gravity.amount = lerp(persistData.gravity.lastAmount, persistData.gravity.desireAmount, persistData.gravity.lerpTime)
       core_environment.setGravity(persistData.gravity.amount)
     end
+  end
+end
+
+local function handleAlteredSimspeed (dt)
+  persistData.simspeed.lifeLeft = persistData.simspeed.lifeLeft - dt
+
+  if persistData.simspeed.lifeLeft <= 0 then
+    persistData.simspeed = {
+      active = false,
+      lifeLeft = 0,
+      amount = 1,
+    }
+    simTimeAuthority.set(1)
   end
 end
 
@@ -251,6 +305,10 @@ local function handleTick (dt)
   if persistData.gravity.active then
     handleAlteredGravity(dt)
   end
+  if persistData.simspeed.active then
+    -- Don't want the thing that's causing slow down to take forever to time out
+    handleAlteredSimspeed(dt / simTimeAuthority.get())
+  end
   if persistData.fog.active then
     handleAlteredFog(dt)
   end
@@ -275,6 +333,8 @@ end
 
 local function onExtensionLoaded ()
   M.ready = true
+  
+  setExtensionUnloadMode(M, "manual")
 end
 
 --M.commands = commands

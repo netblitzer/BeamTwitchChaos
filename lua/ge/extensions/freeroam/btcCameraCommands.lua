@@ -33,8 +33,12 @@ local function setSettings (set)
 end
 
 local function parseCommand (commandIn, currentLevel, commandId)
+  if not commandIn then
+    return
+  end
+  
   local command, option = commandIn:match("([^_]+)_([^_]+)")
-  dump({commandIn, command, option})
+  
   if command == 'camera' then
     if option == 'change' then
       commands.changeCamera(currentLevel)
@@ -174,6 +178,8 @@ end
 
 local function onExtensionLoaded ()
   M.ready = true
+  
+  setExtensionUnloadMode(M, "manual")
 end
 
 --M.commands = commands

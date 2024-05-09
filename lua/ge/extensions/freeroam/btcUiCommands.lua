@@ -39,7 +39,12 @@ local function setSettings (set)
 end
 
 local function parseCommand (commandIn, currentLevel, commandId, commandRaw)
+  if not commandIn then
+    return
+  end
+
   local command, option = commandIn:match("([^_]+)_([^_]+)")
+  
   if commandIn == 'dvd' then
     commands.addDvd(commandId, currentLevel, tonumber(commandRaw.quantity) or 1)
   elseif commandIn == 'ad' then
@@ -236,6 +241,8 @@ end
 
 local function onExtensionLoaded ()
   M.ready = true
+  
+  setExtensionUnloadMode(M, "manual")
 end
 
 --M.commands = commands

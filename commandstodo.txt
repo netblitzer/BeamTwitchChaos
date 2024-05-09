@@ -5,29 +5,56 @@ fire
 extinguish
 ghost
 dvd
-lights flicker
-day speed
+  - 1-10
+ads
+  - 1-10
+day/night cycle speed
 time of day
+  - day
+  - night
+  - random
+  - forward
+  - back
 forcefield
-reverse forcefield
+  - positive
+  - negative
 gravity
+  - pluto
+  - moon
+  - venus
+  - mars
+  - double earth
+  - jupiter
 fog
+  - increase
+  - decrease
+  - random
 ignition
-change camera
-rotate camera
+camera
+  - change
+  - rotate
+  - zoom in/out
+  - reset
 sticky throttle
 sticky brake/handbrake
 yank steering wheel
+  - left/right
 directional kicks/nudges
+  - low/medium/high
+  - left/right
 jump
-reset camera
-drop taxi
-drop bus
-drop piano
-drop cone
+  - low/high
+drop
+  - cone
+  - piano
+  - ramp
+  - taxi
+  - bus
+  - traffic pile
 squish screen
 narrow screen
 shake screen
+speedboost
 
 ---------------------------------------------------
 PARTIAL--------------------------------------------
@@ -76,7 +103,6 @@ moving letterbox screen
 reset gravity
 "adblock"
   - replaces every ad with a thumbs up person for a few seconds and a sound
-speedboost
 gps voice
 penny throws
   - 1, 3, 5, 10, 25, 50, 100 bit throws

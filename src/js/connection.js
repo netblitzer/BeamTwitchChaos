@@ -82,20 +82,19 @@ const triggerCommandAlert = (commandData) => {
     case 'dvd_1':
     case 'dvd_5':
     case 'dvd_10':
+    case 'dvd':
       message = 'added DVD logos'
       break;
     case 'ad_1':
     case 'ad_5':
     case 'ad_10':
+    case 'ad':
       message = 'added ads'
       break;
     case 'view_narrow':
     case 'view_squish':
     case 'view_shake':
       message = 'wants to see less'
-      break;
-    case 'ea':
-      message = 'made the game go to early access'
       break;
     case 'pop':
       message = 'triggered a tire to pop'
@@ -117,6 +116,16 @@ const triggerCommandAlert = (commandData) => {
     case 'kick_l':
     case 'kick_r':
       message = 'gave a bit of a nudge'
+      break;
+    case 'tilt_l':
+    case 'tilt_r':
+    case 'roll_l':
+    case 'roll_r':
+      message = 'went car tipping'
+      break;
+    case 'boost_l':
+    case 'boost_h':
+      message = 'engaged boost'
       break;
     case 'jump_l':
     case 'jump_h':
@@ -163,8 +172,8 @@ const triggerCommandAlert = (commandData) => {
     case 'gravity':
       message = 'wants to feel like they\'re on another planet'
       break;
-    case 'birthday':
-      message = 'wishes a happy birthday!'
+    case 'simscale':
+      message = 'wants to see that in slow-motion'
       break;
     case 'camera_change':
       message = 'wants a better view'
@@ -191,6 +200,27 @@ const triggerCommandAlert = (commandData) => {
       break;
     case 'drop_traffic':
       message = 'spotted some traffic up ahead'
+      break;
+    case 'kickflip':
+      message = 'wants to see some sick tricks'
+      break;
+    case 'spin':
+      message = 'forgot something at our last stop'
+      break;
+    case 'slam':
+      message = 'thinks this is a lowrider'
+      break;
+    case 'random_paint':
+      message = 'thought up a nice paint scheme'
+      break;
+    case 'random_tune':
+      message = 'messed with the tuning sliders'
+      break;
+    case 'random_part':
+      message = 'rummaged through a spare parts bin'
+      break;
+    case 'uireset':
+      message = 'cleaned up the view'
       break;
     case 'test':
       message = 'triggered the test command somehow'

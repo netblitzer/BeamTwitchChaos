@@ -51,6 +51,7 @@ let shakePos = {
   y: 0,
 }
 
+let frameTime = 0.016
 let drawTime = 0
 let prevDrawTime = 0
 let drawCalls = {}
@@ -165,8 +166,8 @@ const drawDvd = (ele, dt) => {
     y: Math.min(visualBounds.yMax - drawSize.h, Math.max(visualBounds.yMin, Number.parseFloat(ele.dataset.yPos))),
   }
 
-  drawPos.x = drawPos.x + (Number.parseFloat(ele.dataset.xDir) * dt * 150)
-  drawPos.y = drawPos.y + (Number.parseFloat(ele.dataset.yDir) * dt * 150)
+  drawPos.x = drawPos.x + (Number.parseFloat(ele.dataset.xDir) * dt * 1200)
+  drawPos.y = drawPos.y + (Number.parseFloat(ele.dataset.yDir) * dt * 1200)
 
   if (drawPos.x < visualBounds.xMin || drawPos.x > visualBounds.xMax - drawSize.w) {
     drawPos.x = Math.min(visualBounds.xMax, Math.max(visualBounds.xMin, drawPos.x - (Number.parseFloat(ele.dataset.xDir) * dt * 155)))
@@ -257,7 +258,7 @@ const shakeElement = (ele, shakeLevel) => {
 }
 
 const updateUI = (time) => {
-  const dt = time - prevDrawTime
+  const dt = frameTime// time - prevDrawTime
   drawTime += dt
 
   visualBounds.xMin = blackoutContainer.offsetLeft + shakePos.x
@@ -286,10 +287,10 @@ const updateUI = (time) => {
       }
       switch (ele.dataset.type) {
         case 'dvd':
-          drawDvd(ele, dt / 1000)
+          drawDvd(ele, dt)// / 1000)
           break
         case 'ad':
-          drawAd(ele, dt / 1000)
+          drawAd(ele, dt)// / 1000)
           break
       }
     })
@@ -437,6 +438,10 @@ export const initialize = (scope) => {
       blackoutContainer.style.height = `calc(100vh)`
       blackoutContainer.style.top = `0px`
     }
+  })
+
+  scope.$on('BTCFrameUpdate', (e, data) => {
+    frameTime = data
   })
 
   comboCountInner.addEventListener('click', (e) => {

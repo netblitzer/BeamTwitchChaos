@@ -1,28 +1,27 @@
 load("freeroam/btcVehicleCommands")
-registerCoreModule("freeroam/btcVehicleCommands")
+setExtensionUnloadMode("freeroam/btcVehicleCommands", "manual")
 
 load("freeroam/btcUiCommands")
-registerCoreModule("freeroam/btcUiCommands")
+setExtensionUnloadMode("freeroam/btcUiCommands", "manual")
 
 load("freeroam/btcFunCommands")
-registerCoreModule("freeroam/btcFunCommands")
+setExtensionUnloadMode("freeroam/btcFunCommands", "manual")
 
 load("freeroam/btcCameraCommands")
-registerCoreModule("freeroam/btcCameraCommands")
+setExtensionUnloadMode("freeroam/btcCameraCommands", "manual")
 
 load("freeroam/btcEnvironmentCommands")
-registerCoreModule("freeroam/btcEnvironmentCommands")
+setExtensionUnloadMode("freeroam/btcEnvironmentCommands", "manual")
 
 load("freeroam/extras/crazyContraptions")
-registerCoreModule("freeroam/extras/crazyContraptions")
+setExtensionUnloadMode("freeroam/extras/crazyContraptions", "manual")
 load("freeroam/extras/crazyContraptionsExtras")
-registerCoreModule("freeroam/extras/crazyContraptionsExtras")
+setExtensionUnloadMode("freeroam/extras/crazyContraptionsExtras", "manual")
 load("freeroam/extras/crazyContraptionsSpecialParts")
-registerCoreModule("freeroam/extras/crazyContraptionsSpecialParts")
+setExtensionUnloadMode("freeroam/extras/crazyContraptionsSpecialParts", "manual")
 
 load("core/jsonUpdated")
-registerCoreModule("core/jsonUpdated")
+setExtensionUnloadMode("core/jsonUpdated", "manual")
 
 load("freeroam/beamTwitchChaos")
-registerCoreModule("freeroam/beamTwitchChaos")
 setExtensionUnloadMode("freeroam/beamTwitchChaos", "manual")

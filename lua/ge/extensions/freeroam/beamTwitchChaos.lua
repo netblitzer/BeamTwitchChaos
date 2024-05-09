@@ -40,9 +40,7 @@ local settings = {
     levelBonus = true,
     commandsPerLevel = 5,
     levelBonusCommandsModifier = 1.5,
-    prepTime = 2.5,
-    prepTimeMin = 0.25,
-    prepTimeModifierPerLevel = 0.8,
+    prepTime = 0.25,
     resetTime = 30,
     droppingTime = 5,
     droppingCommandsPer = 5,
@@ -57,9 +55,7 @@ local defaultSettings = {
     levelBonus = true,
     commandsPerLevel = 5,
     levelBonusCommandsModifier = 1.5,
-    prepTime = 2.5,
-    prepTimeMin = 0.25,
-    prepTimeModifierPerLevel = 0.8,
+    prepTime = 0.25,
     resetTime = 30,
     droppingTime = 5,
     droppingCommandsPer = 5,
@@ -108,6 +104,7 @@ local uiPingTimer = 0
 local uiPingWaitingTimer = 0
 local uiPresent = false
 local isGameControlled = false
+local gameLoading = true
 
 local triggerSoundId = nil
 
@@ -134,7 +131,8 @@ local function parseNewCommand (line)
     return
   end
 
-  if settings.debug and settings.debugVerbose then
+  local playerVehicle = be:getPlayerVehicle(0)
+  if settings.debug and settings.debugVerbose and playerVehicle then
     sendDebugData()
   end
   
@@ -142,7 +140,7 @@ local function parseNewCommand (line)
   persistData.lastReceivedId = persistData.lastReceivedId + 1
   local failResponse = {
     id = persistData.lastReceivedId,
-    status = 3,
+    status = 1,
   }
   persistData.respondQueue[persistData.lastReceivedId] = failResponse
   
@@ -151,15 +149,20 @@ local function parseNewCommand (line)
     log('D', logTag, stripped)
   end
   
+  if not json then json = require("core/jsonUpdated") end
   local newCommand = json.decode(stripped)
 
   newCommand.effectId = persistData.lastCommandId
   persistData.lastCommandId = persistData.lastCommandId + 1
   persistData.lastReceivedId = newCommand.id
   
-  -- This is more to check we're actually loaded
-  local playerVehicle = be:getPlayerVehicle(0)
-  if not persistData.combo.ready[newCommand.effectId] and playerVehicle and isGameControlled and uiPresent then
+  if gameLoading then 
+    local retryResponse = {
+      id = newCommand.id,
+      status = 3,
+    }
+    persistData.respondQueue[newCommand.id] = retryResponse
+  elseif not persistData.combo.ready[newCommand.effectId] and playerVehicle and isGameControlled and uiPresent then
     local uiReady = btcUi.ready
     local vehicleReady = btcVehicle.ready
     local funReady = btcFun.ready
@@ -190,7 +193,7 @@ local function handleCombo (dt)
   if persistData.combo.count > 0 or persistData.combo.timeToReset > 0 then
     local addedCommand = false
 
-    -- Handle already prepped commands f
+    -- Handle already prepped commands
     if persistData.combo.prepped.count > 0 then
       for k, v in pairs(persistData.combo.prepped) do
         if k == 'count' then
@@ -254,7 +257,7 @@ local function handleCombo (dt)
 
         persistData.combo.prepped[k] = v
         persistData.combo.prepped[k].level = persistData.combo.level
-        persistData.combo.prepped[k].prepTime = math.max(settings.combo.prepTimeMin, settings.combo.prepTime * (settings.combo.prepTimeModifierPerLevel ^ persistData.combo.level))
+        persistData.combo.prepped[k].prepTime = settings.combo.prepTime
         persistData.combo.ready[k] = nil
         persistData.combo.ready.count = math.max(0, persistData.combo.ready.count - 1)
         persistData.combo.prepped.count = persistData.combo.prepped.count + 1
@@ -275,14 +278,15 @@ local function handleCombo (dt)
       end
       guihooks.trigger('BTCUpdateCombo', persistData)
     else
-      triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Special>Bus Stop Bell')
       if triggerSoundId then
         local sound = scenetree.findObjectById(triggerSoundId)
-        sound:setParameter('pitch', 1.1)
-        sound:setParameter('fadeInTime', -1)
-        sound:setParameter('fadeOutTime', -1)
-        sound:play(-1)
-        --dump(sound)
+        if sound then
+          sound:setParameter('pitch', 1.1)
+          sound:setParameter('fadeInTime', -1)
+          sound:setParameter('fadeOutTime', -1)
+          sound:play(-1)
+          --dump(sound)
+        end
       end
     end
   end
@@ -631,18 +635,18 @@ local function connectToServer()
 
       if client then
         if sendt[client] then
-          persistData.respondQueue['disable_random_part'] = {
-            id = 0,
-            type = 1,
-            status = 131,
-            code = 'random_part',
-          }
-          persistData.respondQueue['disable_random_tune'] = {
-            id = 0,
-            type = 1,
-            status = 131,
-            code = 'random_tune',
-          }
+          --persistData.respondQueue['disable_random_part'] = {
+          --  id = 0,
+          --  type = 1,
+          --  status = 131,
+          --  code = 'random_part',
+          --}
+          --persistData.respondQueue['disable_random_tune'] = {
+          --  id = 0,
+          --  type = 1,
+          --  status = 131,
+          --  code = 'random_tune',
+          --}
           persistData.respondQueue['disable_crowd_control'] = {
             id = 0,
             type = 1,
@@ -758,6 +762,10 @@ end
 local function checkGameControl ()
   if core_camera.getActiveCamName() ~= 'path' then
     isGameControlled = true
+    gameLoading = false
+  elseif core_gamestate.state and core_gamestate.state.state == "freeroam" then
+    isGameControlled = true
+    gameLoading = false
   else
     isGameControlled = false
   end
@@ -777,7 +785,28 @@ local function pongUI ()
   --log('D', logTag, 'UI Responded')
 end
 
+local function resetData ()
+  disconnectToServer()
+  connectionStatus = 'disconnected'
+  checkTime = 0
+  settings = settings
+  persistData = persistData
+
+  checkUITimer = 0
+  checkGameControlTimer = 0
+  uiPingTimer = 0
+  uiPingWaitingTimer = 0
+  uiPresent = false
+  isGameControlled = false
+  triggerSoundId = nil
+  
+  if be:getPlayerVehicle(0) then
+    be:getPlayerVehicle(0):queueLuaCommand("electrics.horn(false)")
+  end
+end
+
 local function onExtensionLoaded ()
+  log('I', logTag, 'Loading BeamTwitchChaos...')
   resetPersistData = persistData
   -- Create the client to connect to CC
   if settings.autoConnect then
@@ -787,7 +816,6 @@ local function onExtensionLoaded ()
   checkForUI()
   checkGameControl()
   pingUI()
-
 
   if not btcVehicle then btcVehicle = require("freeroam/btcVehicleCommands") end
   if not btcUi then btcUi = require("freeroam/btcUiCommands") end
@@ -805,9 +833,19 @@ local function onExtensionLoaded ()
     sendDebugData()
     be:getPlayerVehicle(0):queueLuaCommand("electrics.horn(false)")
   end
+
+  setExtensionUnloadMode(M, "manual")
+end
+
+local function onExtensionUnloaded ()
+  log('I', logTag, 'Cleaning up BeamTwitchChaos...')
+  
+  resetData()
 end
 
 local function onUpdate (dt)
+  local simSpeedDt = simTimeAuthority.getReal() * dt
+  if simTimeAuthority.getPause() then simSpeedDt = 0 end
   if connectionStatus == 'connected' and client then
     handleServerConnection()
   end
@@ -850,24 +888,24 @@ local function onUpdate (dt)
     local cameraReady = btcCamera.ready
     local environmentReady = btcEnvironment.ready
 
-    -- dump({uiReady, vehicleReady, funReady, cameraReady, environmentReady})
+    --dump({uiReady, vehicleReady, funReady, cameraReady, environmentReady})
 
     if persistData.combo.count > 0 or persistData.combo.timeToReset > 0 then
       handleCombo(dt)
     end
 
-    btcVehicle.handleTick(dt)
-    btcUi.handleTick(dt)
-    btcFun.handleTick(dt)
-    btcCamera.handleTick(dt)
-    btcEnvironment.handleTick(dt)
+    btcVehicle.handleTick(simSpeedDt)
+    btcUi.handleTick(simSpeedDt)
+    btcFun.handleTick(simSpeedDt)
+    btcCamera.handleTick(simSpeedDt)
+    btcEnvironment.handleTick(simSpeedDt)
 
     -- Parse any currently active effects
     if persistData.faultyGears.count > 0 then
-      handleFaultyGears(dt)
+      handleFaultyGears(simSpeedDt)
     end
 
-    if persistData.vehicleCanBeModified.active then
+    if persistData.vehicleCanBeModified.active and be:getPlayerVehicle(0) then
       local playerPos = be:getPlayerVehicle(0) and be:getPlayerVehicle(0):getPosition() or vec3()
       local dist = playerPos:distance(persistData.vehicleCanBeModified.origSpawnLoc)
 
@@ -878,36 +916,141 @@ local function onUpdate (dt)
           origSpawnLoc = vec3(),
         }
         
-        persistData.respondQueue['disable_random_part'] = {
-          id = 0,
-          type = 1,
-          status = 131,
-          code = 'random_part',
-        }
-        persistData.respondQueue['disable_random_tune'] = {
-          id = 0,
-          type = 1,
-          status = 131,
-          code = 'random_tune',
-        }
+        --persistData.respondQueue['disable_random_part'] = {
+        --  id = 0,
+        --  type = 1,
+        --  status = 131,
+        --  code = 'random_part',
+        --}
+        --persistData.respondQueue['disable_random_tune'] = {
+        --  id = 0,
+        --  type = 1,
+        --  status = 131,
+        --  code = 'random_tune',
+        --}
       end
-    end
 
-    guihooks.trigger('BTCFrameUpdate', dt)
+      guihooks.trigger('BTCGarageUpdate', {
+        distance = dist,
+        modifiedStatus = persistData.vehicleCanBeModified,
+      })
+    end
+    local garageUpdate = {
+      distance = dist,
+      modifiedStatus = persistData.vehicleCanBeModified,
+    }
+    guihooks.trigger('BTCGarageUpdate', garageUpdate)
+
+    guihooks.trigger('BTCFrameUpdate', simSpeedDt)
   end
 end
 
-local function onMission (path)
-  log('I', logTag, 'Mission status changed, checking for UI app; '..path)
-  checkForUI()
+local function onMissionChanged (state, mission)
+  if mission and state == "started" then
+    log('I', logTag, 'Loading completed, state is '..state)
+    triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Special>Bus Stop Bell')
+    gameLoading = false
+
+    if not btcVehicle then btcVehicle = require("freeroam/btcVehicleCommands") end
+    if not btcUi then btcUi = require("freeroam/btcUiCommands") end
+    if not btcFun then btcFun = require("freeroam/btcFunCommands") end
+    if not btcCamera then btcCamera = require("freeroam/btcCameraCommands") end
+    if not btcEnvironment then btcEnvironment = require("freeroam/btcEnvironmentCommands") end
+
+    checkForUI()
+
+    if be:getPlayerVehicle(0) then
+      persistData.vehicleCanBeModified = {
+        active = true,
+        distanceTravelled = 0,
+        origSpawnLoc = be:getPlayerVehicle(0):getPosition(),
+      }
+      persistData.respondQueue['disable_random_part'] = {
+        id = 0,
+        type = 1,
+        status = 128,
+        code = 'random_part',
+      }
+      persistData.respondQueue['disable_random_tune'] = {
+        id = 0,
+        type = 1,
+        status = 128,
+        code = 'random_tune',
+      }
+    end
+  elseif mission and state ~= "started" then
+    log('I', logTag, 'Mission changing, '..state)
+    gameLoading = true
+  end
 end
 
-local function onVehicleSwitched (old, new)
+local function onMissionStart (path)
+  if core_gamestate.state and core_gamestate.state.state == "freeroam" then
+    log('I', logTag, 'Post mission start, state is '..core_gamestate.state.state)
+    triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Special>Bus Stop Bell')
+    gameLoading = false
+
+    if not btcVehicle then btcVehicle = require("freeroam/btcVehicleCommands") end
+    if not btcUi then btcUi = require("freeroam/btcUiCommands") end
+    if not btcFun then btcFun = require("freeroam/btcFunCommands") end
+    if not btcCamera then btcCamera = require("freeroam/btcCameraCommands") end
+    if not btcEnvironment then btcEnvironment = require("freeroam/btcEnvironmentCommands") end
+
+    checkForUI()
+
+    if be:getPlayerVehicle(0) then
+      persistData.vehicleCanBeModified = {
+        active = true,
+        distanceTravelled = 0,
+        origSpawnLoc = be:getPlayerVehicle(0):getPosition(),
+      }
+      persistData.respondQueue['disable_random_part'] = {
+        id = 0,
+        type = 1,
+        status = 128,
+        code = 'random_part',
+      }
+      persistData.respondQueue['disable_random_tune'] = {
+        id = 0,
+        type = 1,
+        status = 128,
+        code = 'random_tune',
+      }
+    end
+  end
+end
+
+local function onMissionEnd (path)
+  log('I', logTag, 'Mission ended')
+  gameLoading = true
+
   persistData.vehicleCanBeModified = {
     active = true,
     distanceTravelled = 0,
-    origSpawnLoc = be:getObjectByID(new):getPosition(),
+    origSpawnLoc = be:getPlayerVehicle(0):getPosition(),
   }
+  persistData.respondQueue['disable_random_part'] = {
+    id = 0,
+    type = 1,
+    status = 128,
+    code = 'random_part',
+  }
+  persistData.respondQueue['disable_random_tune'] = {
+    id = 0,
+    type = 1,
+    status = 128,
+    code = 'random_tune',
+  }
+end
+
+local function onVehicleSwitched (old, new)
+  if be:getObjectByID(new) then
+    persistData.vehicleCanBeModified = {
+      active = true,
+      distanceTravelled = 0,
+      origSpawnLoc = be:getObjectByID(new):getPosition(),
+    }
+  end
   
   persistData.respondQueue['disable_random_part'] = {
     id = 0,
@@ -991,12 +1134,29 @@ M.onSerialize           = onSerialize
 M.onDeserialized        = onDeserialized
 
 M.onExtensionLoaded         = onExtensionLoaded
+--M.onExtensionUnloaded       = onExtensionUnloaded
 --M.onPreRender             = onPreRender
 M.onUpdate                  = onUpdate
-M.onClientPostStartMission  = onMission
-M.onClientEndMission        = onMission
+M.onClientPostStartMission  = onMissionStart
+M.onClientEndMission        = onMissionEnd
 M.onMissionLoaded           = onMission
-M.onAnyMissionChanged       = onMission
+M.onAnyMissionChanged       = onMissionChanged
+
+local function onScenarioLoaded (scenario)
+  log('I', logTag, "Scenario Loaded")
+  --dump(scenario)
+end
+M.onScenarioLoaded = onScenarioLoaded
+local function onScenarioChange (scenario)
+  log('I', logTag, "Scenario Changed")
+  --dump(scenario)
+end
+M.onScenarioChange = onScenarioChange
+local function onRaceInit ()
+  log('I', logTag, "Race started")
+end
+M.onRaceInit = onRaceInit
+
 M.onVehicleSwitched         = onVehicleSwitched
 M.onVehicleResetted         = onVehicleResetted
 
