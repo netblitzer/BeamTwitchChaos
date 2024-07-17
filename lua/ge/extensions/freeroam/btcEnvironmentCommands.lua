@@ -53,35 +53,37 @@ end
 
 local function parseCommand (commandIn, currentLevel, commandId, params)
   if not commandIn then
-    return
+    return nil
   end
   
   local command, option = commandIn:match("([^_]+)_([^_]+)")
   
   if commandIn == 'fog' then
-    commands.alterFog(currentLevel, 0)
+    return commands.alterFog(currentLevel, 0)
   elseif commandIn == 'daytime' then
-    commands.setDaytime()
+    return commands.setDaytime()
   elseif commandIn == 'nighttime' then
-    commands.setNighttime()
+    return commands.setNighttime()
   elseif commandIn == 'randomtime' then
-    commands.setRandomtime()
+    return commands.setRandomtime()
   elseif commandIn == 'timescale' then
-    commands.increaseTimeScale(currentLevel)
+    return commands.increaseTimeScale(currentLevel)
   elseif commandIn == 'timeforward' then
-    commands.alterTime(currentLevel, 1)
+    return commands.alterTime(currentLevel, 1)
   elseif commandIn == 'timebackward' then
-    commands.alterTime(currentLevel, -1)
+    return commands.alterTime(currentLevel, -1)
   elseif commandIn == 'fogup' then
-    commands.alterFog(currentLevel, 1)
+    return commands.alterFog(currentLevel, 1)
   elseif commandIn == 'fogdown' then
-    commands.alterFog(currentLevel, -1)
+    return commands.alterFog(currentLevel, -1)
   elseif commandIn == 'gravity' then
-    commands.alterGravity(currentLevel, params)
+    return commands.alterGravity(currentLevel, params)
   elseif commandIn == 'simspeed' then
-    commands.alterSimspeed(currentLevel, params)
+    return commands.alterSimspeed(currentLevel, params)
     
   end
+
+  return nil
 end
 
 ---------------------------
@@ -97,26 +99,30 @@ local function setDaytime ()
     timeObj.time = math.random(0, 150) / 1000
   end
   core_environment.setTimeOfDay(timeObj)
+  return true
 end
 
 local function setNighttime ()
   local timeObj = core_environment.getTimeOfDay()
   timeObj.time = math.random(300, 700) / 1000
   core_environment.setTimeOfDay(timeObj)
+  return true
 end
 
 local function setRandomtime ()
   local timeObj = core_environment.getTimeOfDay()
   timeObj.time = math.random(0, 1000) / 1000
   core_environment.setTimeOfDay(timeObj)
+  return true
 end
 
 local function alterTime (level, dir)
   local timeObj = core_environment.getTimeOfDay()
-  local timeAdd = math.random(50, 100) / 1000 * dir
+  local timeAdd = math.random(250, 500) / 1000 * dir
   dump(timeAdd)
   timeObj.time = timeObj.time + timeAdd
   core_environment.setTimeOfDay(timeObj)
+  return true
 end
 
 commands.setDaytime     = setDaytime
@@ -162,6 +168,7 @@ local function alterGravity (level, params)
     lerpTime = 0,
   }
   core_environment.setGravity(lastAmount)
+  return true
 end
 
 local function alterSimspeed (level, params)
@@ -190,6 +197,7 @@ local function alterSimspeed (level, params)
     amount = amount,
   }
   simTimeAuthority.set(amount)
+  return true
 end
 
 local function alterFog (level, dir)
@@ -202,6 +210,7 @@ local function alterFog (level, dir)
     amount = amount,
   }
   core_environment.setFogDensity(amount)
+  return true
 end
 
 local function increaseTimeScale (level)
@@ -217,6 +226,7 @@ local function increaseTimeScale (level)
   timeObj.nightScale = amount * 2
   timeObj.play = true
   core_environment.setTimeOfDay(timeObj)
+  return true
 end
 
 commands.alterGravity       = alterGravity

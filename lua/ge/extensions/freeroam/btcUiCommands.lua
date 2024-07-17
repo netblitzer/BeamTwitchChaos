@@ -40,28 +40,30 @@ end
 
 local function parseCommand (commandIn, currentLevel, commandId, commandRaw)
   if not commandIn then
-    return
+    return nil
   end
 
   local command, option = commandIn:match("([^_]+)_([^_]+)")
   
   if commandIn == 'dvd' then
-    commands.addDvd(commandId, currentLevel, tonumber(commandRaw.quantity) or 1)
+    return commands.addDvd(commandId, currentLevel, tonumber(commandRaw.quantity) or 1)
   elseif commandIn == 'ad' then
-    commands.addAd(commandId, currentLevel, tonumber(commandRaw.quantity) or 1)
+    return commands.addAd(commandId, currentLevel, tonumber(commandRaw.quantity) or 1)
   elseif commandIn == 'uireset' then
-    commands.clearScreen()
+    return commands.clearScreen()
   elseif command == 'view' then
     if option == 'narrow' then
-      commands.alterScreen(currentLevel, 'narrow')
+      return commands.alterScreen(currentLevel, 'narrow')
     elseif option == 'squish' then
-      commands.alterScreen(currentLevel, 'squish')
+      return commands.alterScreen(currentLevel, 'squish')
     elseif option == 'tunnel' then
-      commands.alterScreen(currentLevel, 'tunnel')
+      return commands.alterScreen(currentLevel, 'tunnel')
     elseif option == 'shake' then
-      commands.alterScreen(currentLevel, 'shake')
+      return commands.alterScreen(currentLevel, 'shake')
     end
   end
+
+  return nil
 end
 
 ---------------------------
@@ -79,6 +81,7 @@ local function clearScreen ()
   --guihooks.trigger('BTCEffect-ad', persistData.ad)
   --guihooks.trigger('BTCEffect-dvd', persistData.dvd)
   guihooks.trigger('BTCEffect-clear')
+  return true
 end
 
 commands.clearScreen = clearScreen
@@ -96,6 +99,7 @@ local function addDvd (idIn, level, count)
     count = count,
   }
   persistData.dvd.count = persistData.dvd.count + 1
+  return true
 end
 
 local function addAd (idIn, level, count)
@@ -107,6 +111,7 @@ local function addAd (idIn, level, count)
     count = count,
   }
   persistData.ad.count = persistData.ad.count + 1
+  return true
 end
 
 local function alterScreen (level, mode)
@@ -126,6 +131,7 @@ local function alterScreen (level, mode)
   persistData.screen.active = true
 
   guihooks.trigger('BTCEffect-screen', persistData.screen)
+  return true
 end
 
 commands.addDvd       = addDvd

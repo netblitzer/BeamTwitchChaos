@@ -4,6 +4,12 @@
 
 local M = {}
 local logTag = "BeamTwitchChaos"
+local p = LuaProfiler(logTag)
+local timecheck = 0
+
+local random = math.random
+local min, max = math.min, math.max
+local floor, ceil = math.floor, math.ceil
 
 -- Network stuff
 local socket = require("socket.socket")
@@ -34,6 +40,24 @@ local btcEnvironment = require("freeroam/btcEnvironmentCommands")
 -- extensions.addModulePath("lua/vehicle/extensions/")
 -- paySoundId = paySoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Special>Buy')
 
+--[[
+{
+  _oA0z = "shDwYP",
+  code = "drop_cone",
+  effectId = 0,
+  id = 228,
+  type = 1,
+  viewer = "SDK",
+  viewers = { {
+      ccUID = "local-1",
+      name = "SDK",
+      originID = "1",
+      profile = "offline",
+      subscriptions = {}
+    } }
+}
+]]
+
 local settings = {
   autoConnect = true,
   combo = {
@@ -46,7 +70,7 @@ local settings = {
     droppingCommandsPer = 5,
   },
   debug = true,
-  debugVerbose = false,
+  debugVerbose = true,
 }
 
 local defaultSettings = {
@@ -98,6 +122,8 @@ local persistData = {
 }
 local resetPersistData = { }
 
+local addedCommand = false
+
 local checkUITimer = 0
 local checkGameControlTimer = 0
 local uiPingTimer = 0
@@ -126,42 +152,148 @@ local function sendDebugData ()
   guihooks.trigger('BTCDebug-DATA', vDat)
 end
 
+local parseQueue = {}
+
+local function respondToCommand (command, success, selfCreated)
+  if not selfCreated then
+    if success then
+      local successResponse = {
+        id = command.id,
+        status = 0,
+      }
+      persistData.respondQueue[command.id] = successResponse
+    else
+      local failResponse = {
+        id = command.id,
+        status = 1,
+      }
+      persistData.respondQueue[command.id] = failResponse
+    end
+  end
+end
+
+local vehicleParsed, uiParsed, funParsed, cameraParsed, environmentParsed, unfilteredCommandParsed = nil, nil, nil, nil, nil, nil
+local function addNewCommand (command, selfCreated)
+  selfCreated = selfCreated or false
+  vehicleParsed, uiParsed, funParsed, cameraParsed, environmentParsed, unfilteredCommandParsed = nil, nil, nil, nil, nil, nil
+  addedCommand = true
+
+  if command.code == 'test' then
+    sendDebugData()
+    --commands.heyAI(persistData.combo.level, 1)
+    respondToCommand(command, true, selfCreated)
+    unfilteredCommandParsed = true
+    goto commandParsed
+  -- Vehicle Effects
+  elseif command.code == 'shiftgear' or command.code == 'gearshift' then
+    commands.shiftGear(persistData.combo.level)
+    respondToCommand(command, true, selfCreated)
+    unfilteredCommandParsed = true
+    goto commandParsed
+  elseif command.code == 'faultygears' then
+    commands.addFaultyGears(command.id, persistData.combo.level)
+    respondToCommand(command, true, selfCreated)
+    unfilteredCommandParsed = true
+  elseif command.code == 'aianger' then
+    goto commandParsed
+    commands.angerAI(persistData.combo.level)
+    respondToCommand(command, true, selfCreated)
+    unfilteredCommandParsed = true
+    goto commandParsed
+  elseif command.code == 'aicalm' then
+    commands.calmAI(persistData.combo.level)
+    respondToCommand(command, true, selfCreated)
+    unfilteredCommandParsed = true
+    goto commandParsed
+  elseif command.code == 'airandom' then
+    commands.randomizeAI(persistData.combo.level)
+    respondToCommand(command, true, selfCreated)
+    unfilteredCommandParsed = true
+    goto commandParsed
+  end
+
+  -- Broken out commands
+  vehicleParsed = btcVehicle.parseCommand(command.code, persistData.combo.level, command.id, command)
+  if vehicleParsed ~= nil then
+    respondToCommand(command, vehicleParsed, selfCreated)
+    goto commandParsed
+  end
+  uiParsed = btcUi.parseCommand(command.code, persistData.combo.level, command.id, command)
+  if uiParsed ~= nil then
+    respondToCommand(command, uiParsed, selfCreated)
+    goto commandParsed
+  end
+  funParsed = btcFun.parseCommand(command.code, persistData.combo.level, command.id, command)
+  if funParsed ~= nil then
+    respondToCommand(command, funParsed, selfCreated)
+    goto commandParsed
+  end
+  cameraParsed = btcCamera.parseCommand(command.code, persistData.combo.level, command.id, command)
+  if cameraParsed ~= nil then
+    respondToCommand(command, cameraParsed, selfCreated)
+    goto commandParsed
+  end
+  environmentParsed = btcEnvironment.parseCommand(command.code, persistData.combo.level, command.id, command)
+  if environmentParsed ~= nil then
+    respondToCommand(command, environmentParsed, selfCreated)
+    goto commandParsed
+  end
+
+  ::commandParsed::
+  if vehicleParsed or uiParsed or funParsed or cameraParsed or environmentParsed or unfilteredCommandParsed then
+    persistData.combo.count = persistData.combo.count - 1
+    persistData.combo.current = persistData.combo.current + 1
+    persistData.combo.highest = max(persistData.combo.highest, persistData.combo.current)
+    persistData.combo.timeToReset = settings.combo.resetTime
+    persistData.combo.dropping = false
+    persistData.combo.level = max(floor(persistData.combo.current / settings.combo.commandsPerLevel), 0)
+    guihooks.trigger('BTCTriggerCommand', command)
+    guihooks.trigger('BTCPrepCommand', command)
+    guihooks.trigger('BTCUpdateCombo', persistData)
+    addedCommand = true
+  end
+end
+
 local function parseNewCommand (line)
+  -- timeprobe(true)
   if type(line) ~= "string" then
     return
   end
 
-  local playerVehicle = be:getPlayerVehicle(0)
+  local playerVehicle = getPlayerVehicle(0)
   if settings.debug and settings.debugVerbose and playerVehicle then
-    sendDebugData()
+    --sendDebugData()
   end
   
   -- Prep a fail respond in case we somehow can't parse the message
   persistData.lastReceivedId = persistData.lastReceivedId + 1
-  local failResponse = {
-    id = persistData.lastReceivedId,
-    status = 1,
-  }
-  persistData.respondQueue[persistData.lastReceivedId] = failResponse
   
-  local stripped = line:sub(0, line:len() - 1)
+  local stripped = line:sub(0, #line)
   if settings.debug then
     log('D', logTag, stripped)
   end
   
-  if not json then json = require("core/jsonUpdated") end
+  --if not json then json = require("core/jsonUpdated") end
   local newCommand = json.decode(stripped)
 
   newCommand.effectId = persistData.lastCommandId
   persistData.lastCommandId = persistData.lastCommandId + 1
   persistData.lastReceivedId = newCommand.id
   
+  -- timecheck = timeprobe(true)
+  -- if timecheck then
+  --   log('I', logTag, 'parsing: '..timecheck)
+  -- end
+  -- timeprobe(true)
+
   if gameLoading then 
+    -- Immediately respond for needing to retry
     local retryResponse = {
       id = newCommand.id,
       status = 3,
     }
     persistData.respondQueue[newCommand.id] = retryResponse
+    return
   elseif not persistData.combo.ready[newCommand.effectId] and playerVehicle and isGameControlled and uiPresent then
     local uiReady = btcUi.ready
     local vehicleReady = btcVehicle.ready
@@ -170,30 +302,34 @@ local function parseNewCommand (line)
     local environmentReady = btcEnvironment.ready
 
     if uiReady and vehicleReady and funReady and cameraReady and environmentReady then
-      -- Nothing is queued or instant anymore, immediately put everything into ready
-      persistData.combo.ready[newCommand.effectId] = newCommand
-      persistData.combo.ready.count = persistData.combo.ready.count + 1
-      persistData.combo.count = persistData.combo.count + 1
-
-      local successResponse = {
-        id = newCommand.id,
-        status = 0,
-      }
-      persistData.respondQueue[newCommand.id] = successResponse
+      addNewCommand(newCommand)
+      -- timecheck = timeprobe(true)
+      -- if timecheck then
+      --   log('I', logTag, 'running: '..timecheck or 0)
+      -- end
+      --table.insert(parseQueue, newCommand)
+      return
     end
   end
+  
+  -- If nothing was already sent or parsed, immediately fail the response
+  local failResponse = {
+    id = persistData.lastReceivedId,
+    status = 1,
+  }
+  persistData.respondQueue[persistData.lastReceivedId] = failResponse
 end
 
 local function reduceComboCount ()
-  persistData.combo.current = math.max(0, persistData.combo.current - settings.combo.droppingCommandsPer)
-  persistData.combo.level = math.max(0, math.floor(persistData.combo.current / settings.combo.commandsPerLevel))
+  persistData.combo.current = max(0, persistData.combo.current - settings.combo.droppingCommandsPer)
+  persistData.combo.level = max(0, floor(persistData.combo.current / settings.combo.commandsPerLevel))
 end
 
 local function handleCombo (dt)
   if persistData.combo.count > 0 or persistData.combo.timeToReset > 0 then
-    local addedCommand = false
 
     -- Handle already prepped commands
+    --[[
     if persistData.combo.prepped.count > 0 then
       for k, v in pairs(persistData.combo.prepped) do
         if k == 'count' then
@@ -218,10 +354,6 @@ local function handleCombo (dt)
             commands.calmAI(persistData.combo.level)
           elseif v.code == 'airandom' then
             commands.randomizeAI(persistData.combo.level)
-        
-          -- UI Effects
-          elseif v.code == 'ea' then
-            commands.addEA(v.id, persistData.combo.level)
 
           -- Broken out commands
           else
@@ -236,10 +368,10 @@ local function handleCombo (dt)
           persistData.combo.prepped.count = persistData.combo.prepped.count - 1
           persistData.combo.count = persistData.combo.count - 1
           persistData.combo.current = persistData.combo.current + 1
-          persistData.combo.highest = math.max(persistData.combo.highest, persistData.combo.current)
+          persistData.combo.highest = max(persistData.combo.highest, persistData.combo.current)
           persistData.combo.timeToReset = settings.combo.resetTime
           persistData.combo.dropping = false
-          persistData.combo.level = math.max(math.floor(persistData.combo.current / settings.combo.commandsPerLevel), 0)
+          persistData.combo.level = max(floor(persistData.combo.current / settings.combo.commandsPerLevel), 0)
           guihooks.trigger('BTCTriggerCommand', v)
           guihooks.trigger('BTCUpdateCombo', persistData)
         end
@@ -259,7 +391,7 @@ local function handleCombo (dt)
         persistData.combo.prepped[k].level = persistData.combo.level
         persistData.combo.prepped[k].prepTime = settings.combo.prepTime
         persistData.combo.ready[k] = nil
-        persistData.combo.ready.count = math.max(0, persistData.combo.ready.count - 1)
+        persistData.combo.ready.count = max(0, persistData.combo.ready.count - 1)
         persistData.combo.prepped.count = persistData.combo.prepped.count + 1
         guihooks.trigger('BTCPrepCommand', v)
         guihooks.trigger('BTCUpdateCombo', persistData)
@@ -267,6 +399,7 @@ local function handleCombo (dt)
         ::skip::
       end
     end
+    ]]
 
     -- If no commands triggered, tick down the time to reset
     if not addedCommand then
@@ -278,6 +411,7 @@ local function handleCombo (dt)
       end
       guihooks.trigger('BTCUpdateCombo', persistData)
     else
+      addedCommand = false
       if triggerSoundId then
         local sound = scenetree.findObjectById(triggerSoundId)
         if sound then
@@ -298,7 +432,7 @@ local function addRandomCommand (count)
   for _ in pairs(commands) do commandsCount = commandsCount + 1 end
   dump(commandsCount)
   for j = 1, count do
-    local commandToRun = math.random(commandsCount)
+    local commandToRun = random(commandsCount)
     dump(commandToRun)
     local i = 0
     for k, v in pairs(commands) do
@@ -319,7 +453,7 @@ end
 
 local function shiftGear ()
 	be:getPlayerVehicle(0):queueLuaCommand([[
-    local chance = math.random(0, 10)
+    local chance = random(0, 10)
     if chance > 8 then
       controller.mainController.shiftToGearIndex(-1)
     elseif chance > 6 then
@@ -333,8 +467,8 @@ end
 local function angerAI (level)
   local trafficVars = gameplay_traffic.getTrafficVars()
   local levelMod = (level * 10.0) / 100
-  trafficVars.baseAggression = math.min(2, trafficVars.baseAggression + math.random(0.05, 0.15) + (math.random(0.05, 0.15) * levelMod))
-  trafficVars.baseDrivability = math.max(0.1, trafficVars.baseDrivability - math.random(0.05, 0.15) - (math.random(0.05, 0.15) * levelMod))
+  trafficVars.baseAggression = max(2, trafficVars.baseAggression + random(0.05, 0.15) + (random(0.05, 0.15) * levelMod))
+  trafficVars.baseDrivability = max(0.1, trafficVars.baseDrivability - random(0.05, 0.15) - (random(0.05, 0.15) * levelMod))
 
   if trafficVars.baseAggression > 0.8 then
     --trafficVars.aiMode = 'chase'
@@ -346,14 +480,14 @@ local function angerAI (level)
   local trafficVehs = gameplay_traffic.getTraffic()
   for _, v in pairs(trafficVehs) do
     v.role.driver.personality.aggression = trafficVars.baseAggression
-    v.role.driver.personality.anger = trafficVars.baseAggression * (2 - math.random(0.050, 0.500))
-    v.role.driver.personality.patience = math.random(0.050, 0.250)
+    v.role.driver.personality.anger = trafficVars.baseAggression * (2 - random(0.050, 0.500))
+    v.role.driver.personality.patience = random(0.050, 0.250)
 
     v.role.driver.behavioral.otherDamageThreshold = 2000 * v.role.driver.personality.anger
     v.role.driver.behavioral.selfDamageThreshold = 5000 * v.role.driver.personality.anger
     be:getObjectByID(_):queueLuaCommand('ai.setAggression('..trafficVars.baseAggression..')')
     local actionValue = (v.role.driver.personality.bravery + v.role.driver.personality.anger) * 0.5
-    local result = lerp(actionValue - 0.5, actionValue + 0.5, math.random())
+    local result = lerp(actionValue - 0.5, actionValue + 0.5, random())
     if result > 2 / 3 then
       v.role.driver.behavioral.otherDamageAction = 'followPostCrash'
       v.role.driver.behavioral.selfDamageAction = 'followPostCrash'
@@ -380,8 +514,8 @@ end
 local function calmAI (level)
   local trafficVars = gameplay_traffic.getTrafficVars()
   local levelMod = (level * 10.0) / 100
-  trafficVars.baseAggression = math.max(0.1, trafficVars.baseAggression - math.random(0.05, 0.15) - (math.random(0.05, 0.15) * levelMod))
-  trafficVars.baseDrivability = math.max(0.1, trafficVars.baseDrivability + math.random(0.05, 0.15) + (math.random(0.05, 0.15) * levelMod))
+  trafficVars.baseAggression = max(0.1, trafficVars.baseAggression - random(0.05, 0.15) - (random(0.05, 0.15) * levelMod))
+  trafficVars.baseDrivability = max(0.1, trafficVars.baseDrivability + random(0.05, 0.15) + (random(0.05, 0.15) * levelMod))
 
   if trafficVars.baseAggression < 0.2 then
     trafficVars.aiMode = 'flee'
@@ -393,11 +527,11 @@ local function calmAI (level)
   local trafficVehs = gameplay_traffic.getTraffic()
   for _, v in pairs(trafficVehs) do
     v.role.driver.personality.aggression = trafficVars.baseAggression
-    v.role.driver.personality.anger = trafficVars.baseAggression * (2 - math.random(0.250, 1.500))
-    v.role.driver.personality.patience = math.random(0.150, 0.500)
+    v.role.driver.personality.anger = trafficVars.baseAggression * (2 - random(0.250, 1.500))
+    v.role.driver.personality.patience = random(0.150, 0.500)
 
     local actionValue = (v.role.driver.personality.bravery + v.role.driver.personality.anger) * 0.5
-    local result = lerp(actionValue - 0.5, actionValue + 0.5, math.random())
+    local result = lerp(actionValue - 0.5, actionValue + 0.5, random())
     v.role.driver.behavioral.otherDamageAction = 'fleePostCrash'
     v.role.driver.behavioral.selfDamageAction = 'fleePostCrash'
     v.role.driver.behavioral.otherDamageThreshold = 2000 * v.role.driver.personality.anger
@@ -434,24 +568,13 @@ end
 local function addFaultyGears (idIn, level)
   persistData.faultyGears[idIn] = {
     life = 0,
-    maxLife = 5 + (5 * math.max(1, level * settings.combo.levelBonusCommandsModifier)),
+    maxLife = 5 + (5 * max(1, level * settings.combo.levelBonusCommandsModifier)),
     timeSinceLastFault = 0,
-    nextFaultTime = 2 + math.random(math.max(0, 2.5 - (level / 5)), math.max(1, 5 - (level / 10))),
+    nextFaultTime = 2 + random(max(0, 2.5 - (level / 5)), max(1, 5 - (level / 10))),
     id = idIn,
     level = level,
   }
   persistData.faultyGears.count = persistData.faultyGears.count + 1
-end
-
-local function addEA (idIn, level, count)
-  count = count or 1
-  persistData.ea[idIn] = {
-    life = 0,
-    maxLife = 30 + (10 * math.max(1, level * settings.combo.levelBonusCommandsModifier)),
-    id = idIn,
-    level = level,
-  }
-  persistData.ea.count = persistData.ea.count + 1
 end
 
 -----------------------
@@ -469,13 +592,13 @@ local function handleFaultyGears (dt)
     if persistData.faultyGears[k].timeSinceLastFault >= persistData.faultyGears[k].nextFaultTime then
       commands.shiftGear()
       log('D', logTag, 'faulty gear')
-      persistData.faultyGears[k].nextFaultTime = 1 + math.random(math.max(0, 2 - (persistData.faultyGears[k].level / 5)), math.max(1, 4 - (persistData.faultyGears[k].level / 10)))
+      persistData.faultyGears[k].nextFaultTime = 1 + random(max(0, 2 - (persistData.faultyGears[k].level / 5)), max(1, 4 - (persistData.faultyGears[k].level / 10)))
       persistData.faultyGears[k].timeSinceLastFault = 0
     end
 
     if persistData.faultyGears[k].life >= persistData.faultyGears[k].maxLife then
       persistData.faultyGears[k] = nil
-      persistData.faultyGears.count = math.max(persistData.faultyGears.count - 1, 0)
+      persistData.faultyGears.count = max(persistData.faultyGears.count - 1, 0)
       log('D', logTag, 'faulty gear fixed')
     end
 
@@ -489,7 +612,6 @@ commands.calmAI = calmAI
 commands.randomizeAI = randomizeAI
 
 commands.addFaultyGears = addFaultyGears
-commands.addEA = addEA
 
 ----------------------------
 --\/ SETTINGS FUNCTIONS \/--
@@ -542,13 +664,18 @@ end
 --\/ NETWORK FUNCTIONS \/--
 ---------------------------
 
+local ind, err, sent, data, part
+local completeData = ''
+local receivet, sendt
+local receiveLoop = 0
 local function handleServerConnection ()
-  if client then
-    local receivet, sendt = socket.select({client}, {client}, 0)
-    local completeData = ''
-    local ind, err, sent, data, part
+  if client then 
+    receiveLoop = 0
+    receivet, sendt = socket.select({client}, {client}, 0)
+    ind, err, sent, data, part = '', '', '', '', ''
 
     if sendt[client] then
+      timeprobe(true)
       -- Respond with all the success/failures we've had
       for k, v in pairs(persistData.respondQueue) do
         ind, err, sent = client:send(json.encode(v)..'\0')
@@ -561,29 +688,42 @@ local function handleServerConnection ()
           resetPersistData.lastReceivedId = persistData.lastReceivedId
           resetPersistData.combo.highest = persistData.combo.highest
           persistData = resetPersistData
+          log('E', logTag, "ERROR: An error occurred while sending data to CrowdControl")
           break
         else
           persistData.respondQueue[k] = nil
         end
       end
+      timecheck = timeprobe(true)
+      if timecheck and timecheck > 0.1 then
+        print('send: '..timecheck)
+        timecheck = 0
+      end
     end
-    local loop = 0
+
     if receivet[client] then
-      while client and loop < 1000 do
+      timeprobe(true)
+      while client and receiveLoop < 200 do
         data, err, part = client:receive(1)
-        if part then
-          completeData = completeData..part
+
+        if (data and data == '\0') or (part and part == '\0') then
+          timecheck = timeprobe(true)
+          if timecheck and timecheck > 0.1 then
+            print('receive: '..timecheck)
+            timecheck = 0
+          end
+          parseNewCommand(completeData)
+          --print(completeData)
+          completeData = ''
+          receiveLoop = 0
+
+          if (data and data == '\0') then
+            goto receiveEnd
+          end
+          goto skip
         elseif data then
-          completeData = completeData..data
-          if loop == 0 and data:sub(1,1) ~= '{' then
-            break
-          end
-          if data == '\0' and completeData ~= '' and completeData ~= '\0' then
-            parseNewCommand(completeData)
-            completeData = ''
-            loop = 0
-            goto skip
-          end
+          completeData = completeData..(part or data or '')
+          --print('d: '..(data or '')..' dc: '..(data and #data or 0)..' p: '..(part or '')..' pc: '..(part and #part or 0)..' c: '..completeData)
         elseif err == 'closed' then
           client:close()
           connectionStatus = 'disconnected'
@@ -591,12 +731,14 @@ local function handleServerConnection ()
           resetPersistData.combo.highest = persistData.combo.highest
           persistData = resetPersistData
           guihooks.trigger('BTCServerLostConnection')
+          log('E', logTag, "ERROR: An error occurred while receiving data from CrowdControl")
         else
-          break
+          goto receiveEnd
         end
-        loop = loop + 1
+        receiveLoop = receiveLoop + 1
         ::skip::
       end
+      ::receiveEnd::
     end
 
     return err
@@ -692,7 +834,7 @@ end
 ------------------------------
 --\/ GAME STATE FUNCTIONS \/--
 ------------------------------
-
+--[[
 local propPool, propPoolId
 local function createPropPool ()
   if not core_vehiclePoolingManager then extensions.load('core_vehiclePoolingManager') end
@@ -708,7 +850,7 @@ local function deleteTrafficPool()
     propPool:deletePool(true)
     propPool, propPoolId = nil, nil
   end
-end
+end]]
 
 local function checkForUI ()
   local gameStateObj = core_gamestate.state
@@ -833,6 +975,12 @@ local function onExtensionLoaded ()
     sendDebugData()
     be:getPlayerVehicle(0):queueLuaCommand("electrics.horn(false)")
   end
+  
+  if core_gamestate.state and core_gamestate.state.state == "freeroam" then
+    log('I', logTag, 'Post mission start, state is '..core_gamestate.state.state)
+    triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Special>Bus Stop Bell')
+    gameLoading = false
+  end
 
   setExtensionUnloadMode(M, "manual")
 end
@@ -843,42 +991,77 @@ local function onExtensionUnloaded ()
   resetData()
 end
 
-local function onUpdate (dt)
-  local simSpeedDt = simTimeAuthority.getReal() * dt
-  if simTimeAuthority.getPause() then simSpeedDt = 0 end
+-- Check for new commands 8 times a second
+local tockFrequency = 0.02
+local tockCycle = 'server'
+local tickPassed = 0
+local function onUpdate (dt, dtSim, dtReal)
+  --p:start()
+  tickPassed = tickPassed + dt
+  --[[
+  if connectionStatus == 'connected' and client and tickPassed >= tockFrequency then
+    if tockCycle == 'server' then
+      handleServerConnection()
+      tockCycle = 'parser'
+    elseif tockCycle == 'parser' then
+      local i
+      for i = 1, #parseQueue do
+        addNewCommand(parseQueue[i])
+      end 
+      parseQueue = {}
+      tockCycle = 'server'
+    end
+    --p:add("Server connection")
+  end
+  ]]
   if connectionStatus == 'connected' and client then
+    --timeprobe(true)
+    gcprobe(false, true)
     handleServerConnection()
+    --timecheck = timeprobe(true)
+    if timecheck and timecheck > 1 then
+      print(timecheck)
+    end
+    if #parseQueue > 0 then
+      for i = 1, #parseQueue do
+        addNewCommand(parseQueue[i], false)
+      end
+      gcprobe(false, false)
+      --timeprobe(false)
+    end
+    parseQueue = {}
   end
 
   if checkUITimer > 0 then
-    checkUITimer = math.max(0, checkUITimer - dt)
+    checkUITimer = max(0, checkUITimer - dt)
 
     if checkUITimer == 0 then
       checkForUI()
     end
   end
   if checkGameControlTimer > 0 then
-    checkGameControlTimer = math.max(0, checkGameControlTimer - dt)
+    checkGameControlTimer = max(0, checkGameControlTimer - dt)
 
     if checkGameControlTimer == 0 then
       checkGameControl()
     end
   end
   if uiPingTimer > 0 then
-    uiPingTimer = math.max(0, uiPingTimer - dt)
+    uiPingTimer = max(0, uiPingTimer - dt)
 
     if uiPingTimer == 0 then
       pingUI()
     end
   end
   if uiPingWaitingTimer > 0 then
-    uiPingWaitingTimer = math.max(0, uiPingWaitingTimer - dt)
+    uiPingWaitingTimer = max(0, uiPingWaitingTimer - dt)
 
     if uiPingWaitingTimer == 0 then
       uiPresent = false
       uiPingTimer = 2
     end
   end
+  --p:add("UI/Game Check")
 
   -- Process commands
   if uiPresent and isGameControlled then
@@ -894,17 +1077,18 @@ local function onUpdate (dt)
       handleCombo(dt)
     end
 
-    btcVehicle.handleTick(simSpeedDt)
-    btcUi.handleTick(simSpeedDt)
-    btcFun.handleTick(simSpeedDt)
-    btcCamera.handleTick(simSpeedDt)
-    btcEnvironment.handleTick(simSpeedDt)
+    btcVehicle.handleTick(dtSim)
+    btcUi.handleTick(dtSim)
+    btcFun.handleTick(dtSim)
+    btcCamera.handleTick(dtSim)
+    btcEnvironment.handleTick(dtSim)
 
     -- Parse any currently active effects
     if persistData.faultyGears.count > 0 then
-      handleFaultyGears(simSpeedDt)
+      handleFaultyGears(dtSim)
     end
-
+    --p:add("Update End")
+    --[[
     if persistData.vehicleCanBeModified.active and be:getPlayerVehicle(0) then
       local playerPos = be:getPlayerVehicle(0) and be:getPlayerVehicle(0):getPosition() or vec3()
       local dist = playerPos:distance(persistData.vehicleCanBeModified.origSpawnLoc)
@@ -940,9 +1124,13 @@ local function onUpdate (dt)
       modifiedStatus = persistData.vehicleCanBeModified,
     }
     guihooks.trigger('BTCGarageUpdate', garageUpdate)
+    ]]
 
-    guihooks.trigger('BTCFrameUpdate', simSpeedDt)
+    guihooks.trigger('BTCFrameUpdate', dtSim)
   end
+  
+  tickPassed = tickPassed % tockFrequency
+  --p:finish(dtSim > 0, dtReal)
 end
 
 local function onMissionChanged (state, mission)
@@ -959,7 +1147,7 @@ local function onMissionChanged (state, mission)
 
     checkForUI()
 
-    if be:getPlayerVehicle(0) then
+    --[[ if be:getPlayerVehicle(0) then
       persistData.vehicleCanBeModified = {
         active = true,
         distanceTravelled = 0,
@@ -977,7 +1165,7 @@ local function onMissionChanged (state, mission)
         status = 128,
         code = 'random_tune',
       }
-    end
+    end ]]
   elseif mission and state ~= "started" then
     log('I', logTag, 'Mission changing, '..state)
     gameLoading = true
@@ -998,7 +1186,7 @@ local function onMissionStart (path)
 
     checkForUI()
 
-    if be:getPlayerVehicle(0) then
+    --[[ if be:getPlayerVehicle(0) then
       persistData.vehicleCanBeModified = {
         active = true,
         distanceTravelled = 0,
@@ -1016,7 +1204,7 @@ local function onMissionStart (path)
         status = 128,
         code = 'random_tune',
       }
-    end
+    end ]]
   end
 end
 
@@ -1073,7 +1261,7 @@ local function onVehicleResetted (vID)
     origSpawnLoc = be:getObjectByID(vID):getPosition(),
   }
   
-  persistData.respondQueue['disable_random_part'] = {
+  --[[ persistData.respondQueue['disable_random_part'] = {
     id = 0,
     type = 1,
     status = 128,
@@ -1084,7 +1272,7 @@ local function onVehicleResetted (vID)
     type = 1,
     status = 128,
     code = 'random_tune',
-  }
+  } ]]
 end
 
 local function onSerialize()

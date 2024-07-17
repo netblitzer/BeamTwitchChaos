@@ -34,31 +34,34 @@ end
 
 local function parseCommand (commandIn, currentLevel, commandId)
   if not commandIn then
-    return
+    return nil
   end
   
   local command, option = commandIn:match("([^_]+)_([^_]+)")
   
   if command == 'camera' then
     if option == 'change' then
-      commands.changeCamera(currentLevel)
+      return commands.changeCamera(currentLevel)
     elseif option == 'left' then
-      commands.alterCamera(currentLevel, 'yaw', -1)
+      return commands.alterCamera(currentLevel, 'yaw', -1)
     elseif option == 'right' then
-      commands.alterCamera(currentLevel, 'yaw', 1)
+      return commands.alterCamera(currentLevel, 'yaw', 1)
     elseif option == 'up' then
-      commands.alterCamera(currentLevel, 'pitch', -1)
+      return commands.alterCamera(currentLevel, 'pitch', -1)
     elseif option == 'down' then
-      commands.alterCamera(currentLevel, 'pitch', 1)
+      return commands.alterCamera(currentLevel, 'pitch', 1)
     elseif option == 'in' then
-      commands.alterCamera(currentLevel, 'zoom', -1)
+      return commands.alterCamera(currentLevel, 'zoom', -1)
     elseif option == 'out' then
-      commands.alterCamera(currentLevel, 'zoom', 1)
+      return commands.alterCamera(currentLevel, 'zoom', 1)
     elseif option == 'reset' then
       core_camera.resetCamera(0)
       core_camera.setByName(0, "orbit", true)
+      return true
     end
   end
+
+  return nil
 end
 
 ---------------------------
@@ -85,6 +88,7 @@ local function changeCamera (level)
   persistData.camera.changeLife = math.max(persistData.camera.changeLife, math.min(30, 10 + level * 2))
 
   core_camera.setByName(0, swappedCamera, true)
+  return true
 end
 
 local function alterCamera (level, mode, dir)
@@ -105,6 +109,7 @@ local function alterCamera (level, mode, dir)
   core_camera.rotate_yaw(persistData.camera.yaw, 0)
   core_camera.rotate_pitch(persistData.camera.pitch, 0)
   core_camera.cameraZoom(persistData.camera.zoom, 0)
+  return true
 end
 
 commands.changeCamera   = changeCamera

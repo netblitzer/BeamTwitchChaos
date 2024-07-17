@@ -219,6 +219,12 @@ const triggerCommandAlert = (commandData) => {
     case 'random_part':
       message = 'rummaged through a spare parts bin'
       break;
+    case 'meteors':
+      message = 'spotted something in the sky'
+      break;
+    case 'fireworks':
+      message = 'wants to see some fireworks'
+      break;
     case 'uireset':
       message = 'cleaned up the view'
       break;
