@@ -65,9 +65,9 @@ local powertrain_slots_names =
 }
 
 local function randomizeOnlyPowertrainParts()
-	local veh = be:getPlayerVehicle(0)	
+	local veh = getPlayerVehicle(0)	
 	local veh_data = extensions.core_vehicle_manager.getPlayerVehicleData()
-	local veh_name = be:getPlayerVehicle(0):getJBeamFilename()
+	local veh_name = getPlayerVehicle(0):getJBeamFilename()
 	
 	local all_slots = jbeam_io.getAvailableSlotMap(veh_data.ioCtx)
 	local all_parts = jbeam_io.getAvailableParts(veh_data.ioCtx)
@@ -171,9 +171,9 @@ end
 
 -- Also has chance to choose no parts
 local function randomizeOnlyBodyParts(randomize_frame)
-	local veh = be:getPlayerVehicle(0)	
+	local veh = getPlayerVehicle(0)	
 	local veh_data = extensions.core_vehicle_manager.getPlayerVehicleData()
-	local veh_name = be:getPlayerVehicle(0):getJBeamFilename()
+	local veh_name = getPlayerVehicle(0):getJBeamFilename()
 	
 	local all_slots = jbeam_io.getAvailableSlotMap(veh_data.ioCtx)
 	local all_parts = jbeam_io.getAvailableParts(veh_data.ioCtx)
@@ -228,9 +228,9 @@ local function randomizeParts()
 end
 
 local function randomizeTuning()
-	local veh = be:getPlayerVehicle(0)	
+	local veh = getPlayerVehicle(0)	
 	local veh_data = extensions.core_vehicle_manager.getPlayerVehicleData()
-	local veh_name = be:getPlayerVehicle(0):getJBeamFilename()
+	local veh_name = getPlayerVehicle(0):getJBeamFilename()
 	local vars = veh_data.vdata.variables
 	
 	-- Stop if any variable is nil
@@ -271,9 +271,9 @@ local function randomizeTuning()
 end
 
 local function randomizePaint()
-	local veh = be:getPlayerVehicle(0)	
+	local veh = getPlayerVehicle(0)	
 	local veh_data = extensions.core_vehicle_manager.getPlayerVehicleData()
-	local veh_name = be:getPlayerVehicle(0):getJBeamFilename()
+	local veh_name = getPlayerVehicle(0):getJBeamFilename()
 	veh_data.config.paints = veh_data.config.paints or {}
 	
 	-- Stop if any variable is nil

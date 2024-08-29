@@ -109,6 +109,13 @@
   top: 110px;
   left: 57px;
 
+  &.btc-classic-mode {
+    left: 105px;
+    .btc-combo-count {
+      font-family: 'Windows95';
+    }
+  }
+
   .btc-combo-count {
     position: absolute;
     width: 0;
@@ -168,6 +175,12 @@
 .btc-alert-container {
   margin: 15% 25% 0 25%;
   z-index: 10;
+
+  &.btc-classic-mode {
+    .btc-effect-alert {
+      font-family: 'Windows95';
+    }
+  }
 
   .btc-effect-alert {
     display: block;
@@ -313,4 +326,8 @@
     flex-flow: column nowrap;
     align-content: center;
   }
+}
+
+.oldschool-font {
+  font-family: 'Windows95';
 }

@@ -1,4 +1,5 @@
 import { settings } from "./app"
+import { addCCEffect } from "./ui-effects"
 
 export const CONNECTION_STATUS = {
   CONNECTED: 'connected',
@@ -49,7 +50,7 @@ const tryServerConnect = (connectionAttempts = 0) => {
   elements.status.dataset.status = state.status
 
   if (connectionAttempts < 5) {
-    console.log("reconnection attempt: %d", connectionAttempts + 1)
+    console.warn("reconnection attempt: %d", connectionAttempts + 1)
     bngApi.engineLua(`freeroam_beamTwitchChaos.connectToServer()`)
     state.lastConnectionAttemptTime = new Date().getUTCMilliseconds()
     state.lastConnectionAttemptCount += 1
@@ -71,6 +72,11 @@ const tryServerConnect = (connectionAttempts = 0) => {
 }
 
 const triggerCommandAlert = (commandData) => {
+  if (commandData.code.indexOf('cc_') === 0 && commandData.code !== 'cc_activate'
+      && commandData.code !== 'cc_continue.1' && commandData.code !== 'cc_continue.2') {
+    addCCEffect(commandData)
+  }
+
   const alertMidTime = 2350
   const alertEndTime = 150
   const alert = document.createElement('div')
@@ -227,6 +233,13 @@ const triggerCommandAlert = (commandData) => {
       break;
     case 'uireset':
       message = 'cleaned up the view'
+      break;
+    case 'cc_activate':
+      message = 'wants to prove they\'re a better driver'
+      break;
+    case 'cc_continue.1':
+    case 'cc_continue.2':
+      message = 'won\'t let go of the wheel'
       break;
     case 'test':
       message = 'triggered the test command somehow'

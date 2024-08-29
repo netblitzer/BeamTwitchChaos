@@ -18,6 +18,23 @@ module.exports = {
           },
           {
             loader: "css-loader", // translates CSS into CommonJS
+            options: {
+              url: {
+                filter: (url, resourcePath) => {
+                  // resourcePath - path to css file
+    
+                  // Don't handle `img.png` urls
+                  if (url.includes(".png")) {
+                    return false;
+                  }
+                  if (url.includes(".otf") || url.includes(".ttf") || url.includes(".woff")) {
+                    return false;
+                  }
+    
+                  return true;
+                },
+              },
+            },
           },
           {
             loader: "less-loader", // compiles Less to CSS

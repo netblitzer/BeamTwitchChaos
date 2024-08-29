@@ -1,8 +1,12 @@
 
+let alertContainer;
 let effectContainer;
 let copyContainer;
 let canvasEle;
 let context;
+let drawCanvasEle = new OffscreenCanvas(256, 256);
+let drawContext = drawCanvasEle.getContext('2d');
+let displayImage;
 const windowSize = {
   w: 0,
   h: 0,
@@ -13,6 +17,7 @@ const visualBounds = {
   yMin: 0,
   yMax: 0,
 }
+let comboCountContainer
 let comboCount
 let comboCountInner
 let levelContainer
@@ -31,15 +36,15 @@ const rainbow = [
   'rgb(102, 51,  255)',
   'rgb(204, 51,  255)',
 ]
-const enterTypes = [
+const adEnterTypes = [
   'ad-in-slide',
   'ad-in-fade',
 ]
-const exitTypes = [
+const adExitTypes = [
   'ad-out-slide',
   'ad-out-fade',
 ]
-const directions = [
+const adDirections = [
   'ad-left',
   'ad-right',
   'ad-top',
@@ -55,9 +60,13 @@ let frameTime = 0.016
 let drawTime = 0
 let prevDrawTime = 0
 let drawCalls = {}
+let ccData = {
+  status: 'off'
+}
 
 const clearCanvas = () => {
   context.clearRect(0, 0, windowSize.w, windowSize.h)
+  drawContext.clearRect(0, 0, windowSize.w, windowSize.h)
 }
 
 const getScaledPosition = (gridPos, objSize) => {
@@ -125,9 +134,9 @@ const addAd = (adData) => {
         x: (Math.random() * (visualBounds.xMax - visualBounds.xMin - newAd.clientHeight) + visualBounds.xMin),
         y: (Math.random() * (visualBounds.yMax - visualBounds.yMin - newAd.clientWidth) + visualBounds.yMin),
       }
-      const enterType = enterTypes[Math.floor(Math.random() * enterTypes.length)]
-      const exitType = exitTypes[Math.floor(Math.random() * exitTypes.length)]
-      const direction = directions[Math.floor(Math.random() * directions.length)]
+      const enterType = adEnterTypes[Math.floor(Math.random() * adEnterTypes.length)]
+      const exitType = adExitTypes[Math.floor(Math.random() * adExitTypes.length)]
+      const direction = adDirections[Math.floor(Math.random() * adDirections.length)]
 
       newAd.classList.add('btc-hidden', 'ad-in-out', enterType, exitType, direction)
       newAd.dataset.xPos = drawPos.x
@@ -257,8 +266,273 @@ const shakeElement = (ele, shakeLevel) => {
   ele.style.top = `${shakeOffset.y}px`
 }
 
+const drawTVBorder = () => {
+  drawContext.globalAlpha = 1
+  // Top
+  let tvGradient = drawContext.createRadialGradient(windowSize.w / 2, windowSize.h * 5, windowSize.h * 74 / 15, 
+    windowSize.w / 2, windowSize.h * 5, windowSize.h * 498 / 100)
+  tvGradient.addColorStop(0.7, "rgba(0, 0, 0, 0)")
+  tvGradient.addColorStop(1, "rgba(0, 0, 0, 1)")
+  drawContext.fillStyle = tvGradient
+  drawContext.fillRect(0, 0, windowSize.w, windowSize.h)
+  // Left
+  tvGradient = drawContext.createRadialGradient(windowSize.w * -4, windowSize.h / 2, windowSize.w * 74 / 15, 
+    windowSize.w * -4, windowSize.h / 2, windowSize.w * 498 / 100)
+  tvGradient.addColorStop(0.5, "rgba(0, 0, 0, 0)")
+  tvGradient.addColorStop(1, "rgba(0, 0, 0, 1)")
+  drawContext.fillStyle = tvGradient
+  drawContext.fillRect(0, 0, windowSize.w, windowSize.h)
+  // Bottom
+  tvGradient = drawContext.createRadialGradient(windowSize.w / 2, windowSize.h * -4, windowSize.h * 74 / 15, 
+    windowSize.w / 2, windowSize.h * -4, windowSize.h * 498 / 100)
+  tvGradient.addColorStop(0.7, "rgba(0, 0, 0, 0)")
+  tvGradient.addColorStop(1, "rgba(0, 0, 0, 1)")
+  drawContext.fillStyle = tvGradient
+  drawContext.fillRect(0, 0, windowSize.w, windowSize.h)
+  // Right
+  tvGradient = drawContext.createRadialGradient(windowSize.w * 5, windowSize.h / 2, windowSize.w * 74 / 15, 
+    windowSize.w * 5, windowSize.h / 2, windowSize.w * 498 / 100)
+  tvGradient.addColorStop(0.5, "rgba(0, 0, 0, 0)")
+  tvGradient.addColorStop(1, "rgba(0, 0, 0, 1)")
+  drawContext.fillStyle = tvGradient
+  drawContext.fillRect(0, 0, windowSize.w, windowSize.h)
+}
+
+const drawTVPowerOff = (t) => {
+  let offTightness = 2.75
+  let xOffset = windowSize.w / 2 * offTightness * (t - 0.6)
+  let yOffset = windowSize.h / 2 * offTightness * (t - 0.6)
+  drawContext.globalAlpha = Math.min(1, Math.max(0, (t - 0.7) * 6))
+  drawContext.fillStyle = `rgb(${t * 255}, ${t * 255}, ${t * 255})`
+  drawContext.fillRect(0, 0, windowSize.w, windowSize.h)
+  drawContext.globalAlpha = 1
+  drawContext.fillStyle = "#000"
+  // TL
+  drawContext.beginPath()
+  drawContext.moveTo(0, 0)
+  drawContext.lineTo(windowSize.w / 2, 0)
+  drawContext.bezierCurveTo(windowSize.w / 2, yOffset, 
+  xOffset, windowSize.h / 2, 
+                            0, windowSize.h / 2)
+  drawContext.closePath()
+  drawContext.fill()
+  // TR
+  drawContext.beginPath()
+  drawContext.moveTo(windowSize.w, 0)
+  drawContext.lineTo(windowSize.w / 2, 0)
+  drawContext.bezierCurveTo(windowSize.w / 2, yOffset, 
+  windowSize.w - xOffset, windowSize.h / 2, 
+                            windowSize.w, windowSize.h / 2)
+  drawContext.closePath()
+  drawContext.fill()
+  // BL
+  drawContext.beginPath()
+  drawContext.moveTo(0, windowSize.h)
+  drawContext.lineTo(windowSize.w / 2, windowSize.h)
+  drawContext.bezierCurveTo(windowSize.w / 2, windowSize.h - yOffset, 
+  xOffset, windowSize.h / 2, 
+                            0, windowSize.h / 2)
+  drawContext.closePath()
+  drawContext.fill()
+  // BR
+  drawContext.beginPath()
+  drawContext.moveTo(windowSize.w, windowSize.h)
+  drawContext.lineTo(windowSize.w / 2, windowSize.h)
+  drawContext.bezierCurveTo(windowSize.w / 2, windowSize.h - yOffset, 
+  windowSize.w - xOffset, windowSize.h / 2, 
+                            windowSize.w, windowSize.h / 2)
+  drawContext.closePath()
+  drawContext.fill()
+}
+
+const drawTVEffects = (time, staticAlpha = 0.05) => {
+  drawContext.globalAlpha = Math.min(0.3, Math.max(0.8, staticAlpha))
+  drawContext.fillStyle = '#5A8'
+  drawContext.fillRect(0, 0, windowSize.w, windowSize.h)
+  let staticColor = 0
+  let windowMod = {
+    x: Math.ceil(windowSize.w / 64),
+    y: Math.ceil(windowSize.h / 64),
+  }
+  let scanLineMod = 4
+  let scanLineSpeed = 0.002
+  let scanLineWidthMod = 2
+  for (let i = 0; i < windowMod.y * scanLineMod; i++) {
+    staticColor = 10 + (Math.sin((i / scanLineWidthMod) + (time * scanLineSpeed) % (Math.PI * 2)) + 1) / 2 * 90
+    drawContext.fillStyle = `hsl(${(i * 120) % 360}deg, ${staticColor / 3}%, ${staticColor}%)`
+    drawContext.fillRect(0, windowSize.h / (windowMod.y * scanLineMod) * i, windowSize.w, windowSize.h / (windowMod.y * scanLineMod))
+  }
+  drawContext.globalAlpha = staticAlpha
+  for (let i = 0; i < windowMod.x; i++) {
+    for (let j = 0; j < windowMod.y; j++) {
+      staticColor = 105 + Math.floor(Math.random() * 150)
+      drawContext.fillStyle = `rgb(${staticColor}, ${staticColor}, ${staticColor})`
+      drawContext.fillRect(windowSize.w / windowMod.x * i, windowSize.h / windowMod.y * j,
+        windowSize.w / windowMod.x, windowSize.h / windowMod.y)
+    }
+  }
+}
+
+const drawClassicWindow = (options) => {
+  const { x, y, width, height, bezel = 5 } = {...options}
+  drawContext.globalAlpha = 1
+  drawContext.fillStyle = '#AAA'
+  drawContext.fillRect(x, y, width, height)
+  drawContext.fillStyle = '#DDD'
+  drawContext.beginPath()
+  drawContext.moveTo(x, y)
+  drawContext.lineTo(x + width, y)
+  drawContext.lineTo(x, y + height)
+  drawContext.closePath()
+  drawContext.fill()
+  drawContext.fillStyle = '#CCC'
+  drawContext.fillRect(x + bezel, y + bezel, width - (bezel * 2), height - (bezel * 2))
+}
+
+let ccEffectList = []
+const clearCCEffectList = () => {
+  ccEffectList = []
+}
+
+const addCCEffect = (commandData) => {
+  let codeParsed = 'unknown'
+
+  switch(commandData.code) {
+    case 'cc_throttle.0':
+      codeParsed = 'throttle 0%'
+      break;
+    case 'cc_throttle.1':
+      codeParsed = 'throttle 50%'
+      break;
+    case 'cc_throttle.2':
+      codeParsed = 'throttle 100%'
+      break;
+    case 'cc_straight':
+      codeParsed = 'steer 0deg'
+      break;
+    case 'cc_left.1':
+      codeParsed = 'steer -15deg'
+      break;
+    case 'cc_left.2':
+      codeParsed = 'steer -30deg'
+      break;
+    case 'cc_left.3':
+      codeParsed = 'steer -45deg'
+      break;
+    case 'cc_right.1':
+      codeParsed = 'steer 15deg'
+      break;
+    case 'cc_right.2':
+      codeParsed = 'steer 30deg'
+      break;
+    case 'cc_right.3':
+      codeParsed = 'steer 45deg'
+      break;
+    case 'cc_brake.0':
+      codeParsed = 'brake 0%'
+      break;
+    case 'cc_brake.1':
+      codeParsed = 'brake 50%'
+      break;
+    case 'cc_brake.2':
+      codeParsed = 'brake 100%'
+      break;
+    case 'cc_gear.up':
+      codeParsed = 'gear up'
+      break;
+    case 'cc_gear.down':
+      codeParsed = 'gear down'
+      break;
+    case 'cc_gear.neutral':
+      codeParsed = 'gear N'
+      break;
+    case 'cc_gear.reverse':
+      codeParsed = 'gear R'
+      break;
+  }
+
+  ccEffectList.push({
+    user: commandData.viewer,
+    code: codeParsed || commandData.code,
+  })
+  console.log(ccEffectList)
+}
+
+const drawCCStatus = () => {
+  const statusXPos = -285
+  drawClassicWindow({
+    x: windowSize.w + statusXPos, 
+    y: windowSize.h / 2 - 105,
+    width: 210,
+    height: 310,
+  })
+  drawContext.globalAlpha = 1
+  drawContext.fillStyle = '#00A'
+  drawContext.fillRect(windowSize.w + statusXPos + 5, windowSize.h / 2 - 100, 200, 25)
+  drawContext.fillStyle = '#FFF'
+  drawContext.textAlign = 'left'
+  drawContext.font = "14pt Windows95, 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+  drawContext.fillText('TOTAL CONTROL', windowSize.w + statusXPos + 10, windowSize.h / 2 - 80)
+  drawContext.font = "12pt Windows95, 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+  drawContext.fillStyle = '#000'
+  drawContext.fillText('TIME LEFT', windowSize.w + statusXPos + 10, windowSize.h / 2 - 35)
+  drawContext.fillText('STEER', windowSize.w + statusXPos + 10, windowSize.h / 2 + 5)
+  drawContext.fillText('THROTTLE', windowSize.w + statusXPos + 10, windowSize.h / 2 + 35)
+  drawContext.fillText('BRAKE', windowSize.w + statusXPos + 10, windowSize.h / 2 + 65)
+  drawContext.textAlign = 'right'
+  drawContext.font = "bold 30pt Windows95, 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+  drawContext.fillText((ccData.countdown || 0).toPrecision(3), windowSize.w + statusXPos + 200, windowSize.h / 2 - 35)
+  drawContext.fillStyle = '#E0E0E0'
+  drawContext.strokeStyle = '#BBB'
+  drawContext.lineWidth = 1.5
+  drawContext.fillRect(windowSize.w + statusXPos + 10, windowSize.h / 2 - 20, 190, 2)
+  drawContext.fillRect(windowSize.w + statusXPos + 10, windowSize.h / 2 + 83, 190, 110)
+  drawContext.strokeRect(windowSize.w + statusXPos + 10, windowSize.h / 2 + 83, 190, 110)
+  drawContext.fillRect(windowSize.w + statusXPos + 100, windowSize.h / 2 - 12, 100, 20)
+  drawContext.strokeRect(windowSize.w + statusXPos + 100, windowSize.h / 2 - 12, 100, 20)
+  drawContext.fillRect(windowSize.w + statusXPos + 100, windowSize.h / 2 + 18, 100, 20)
+  drawContext.strokeRect(windowSize.w + statusXPos + 100, windowSize.h / 2 + 18, 100, 20)
+  drawContext.fillRect(windowSize.w + statusXPos + 100, windowSize.h / 2 + 48, 100, 20)
+  drawContext.strokeRect(windowSize.w + statusXPos + 100, windowSize.h / 2 + 48, 100, 20)
+  drawContext.fillStyle = '#C4C4C4'
+  drawContext.fillRect(windowSize.w + statusXPos + 180, windowSize.h / 2 + 83, 20, 110)
+  drawClassicWindow({
+    x: windowSize.w + statusXPos + 180, 
+    y: windowSize.h / 2 + 88,
+    width: 20,
+    height: 20,
+    bezel: 3,
+  })
+  
+  if (ccData.inputs) {
+    // Steer bar graph
+    drawContext.fillStyle = '#00A'
+    drawContext.fillRect(windowSize.w  + statusXPos + 150, windowSize.h / 2 - 10, ccData.inputs.steering.amount * 48, 17)
+    // Throttle bar graph
+    drawContext.fillStyle = '#0A0'
+    drawContext.fillRect(windowSize.w  + statusXPos + 99, windowSize.h / 2 + 20, ccData.inputs.throttle.amount * 99, 17)
+    // Brake bar graph
+    drawContext.fillStyle = '#A00'
+    drawContext.fillRect(windowSize.w  + statusXPos + 99, windowSize.h / 2 + 50, ccData.inputs.brake.amount * 99, 17)
+  }
+  drawContext.fillStyle = '#C4C4C4'
+  drawContext.fillRect(windowSize.w  + statusXPos + 149, windowSize.h / 2 - 12, 2, 20)
+
+  drawContext.fillStyle = '#000'
+  drawContext.font = "12pt Windows95, 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+  for (let i = 0; i < Math.min(7, ccEffectList.length); i++) {
+    drawContext.textAlign = 'left'
+    drawContext.fillText(`${ccEffectList[ccEffectList.length - i - 1].user}:`, windowSize.w  + statusXPos + 15, windowSize.h / 2 + 100 + (i * 15), 80)
+    drawContext.textAlign = 'right'
+    drawContext.fillText(`${ccEffectList[ccEffectList.length - i - 1].code}`, windowSize.w  + statusXPos + 175, windowSize.h / 2 + 100 + (i * 15))
+  }
+}
+
+let prevRenderTime = 0
 const updateUI = (time) => {
   const dt = frameTime// time - prevDrawTime
+  const renderTime = (1000 / (time - prevRenderTime)).toPrecision(4)
+  prevRenderTime = time
   drawTime += dt
 
   visualBounds.xMin = blackoutContainer.offsetLeft + shakePos.x
@@ -274,6 +548,78 @@ const updateUI = (time) => {
       child.style.fontSize = `${Math.max(100, 100 + (comboCountInner.dataset.effectCount / 5) || 0)}px`
       child.children[0].style.textShadow = `0 0 ${Math.max(2, 2 + ((comboCountInner.dataset.effectCount / 25) || 0))}px black`
     })
+
+    drawContext.font = "'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+    drawContext.textAlign = 'center'
+    if (ccData.state !== 'off') {
+      switch (ccData.state) {
+        case 'transition_in':
+          if (ccData.countdown > 0.7) {
+            drawTVPowerOff(1 - ((ccData.countdown - 0.7) / 0.3))
+          } else if (ccData.countdown < 0.3) {
+            drawTVEffects(time, 0.05)
+            drawTVBorder()
+            drawTVPowerOff((ccData.countdown / 0.3))
+          } else {
+            drawTVPowerOff(1)
+          }
+          break;
+        case 'transition_out':
+          if (ccData.countdown > 0.7) {
+            drawTVEffects(time, 0.9)
+            drawTVBorder()
+            drawTVPowerOff(1 - ((ccData.countdown - 0.7) / 0.3))
+          } else if (ccData.countdown < 0.3) {
+            drawTVPowerOff((ccData.countdown / 0.3))
+          } else {
+            drawTVPowerOff(1)
+          }
+          break;
+        case 'countdown':
+          let warningLoc = {
+            x: windowSize.w / 2,
+            y: windowSize.h / 4 * 3 - 120,
+          }
+          let countdownColor = (1 + Math.sin(ccData.countdown * 10)) * 255 / 2
+          drawContext.fillStyle = `rgb(255, ${countdownColor}, ${countdownColor})`
+          drawContext.strokeStyle = '#000'
+          drawContext.lineWidth = '1.25'
+          drawContext.setTransform(2, 0, 0, 1, -windowSize.w / 2, 0)
+          drawContext.fillText('WARNING', warningLoc.x, warningLoc.y - 50)
+          drawContext.strokeText('WARNING', warningLoc.x, warningLoc.y - 50)
+          drawContext.setTransform(1.25, 0, 0, 1, -windowSize.w / 8, 0)
+          //drawContext.fillStyle = '#FFF'
+          drawContext.font = "bold 24pt 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+          drawContext.fillText('THE CROWD IS TAKING CONTROL', warningLoc.x, warningLoc.y)
+          drawContext.strokeText('THE CROWD IS TAKING CONTROL', warningLoc.x, warningLoc.y)
+          drawContext.font = "bold 70pt 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+          let countdownVal = (ccData.countdown || 0).toPrecision(2)
+          countdownColor = 255
+          if (ccData.countdown < 1) {
+            if (ccData.countdown < 0.5) {
+              countdownColor = (1 + Math.sin(ccData.countdown * 15)) * 255 / 2
+              countdownVal = (ccData.countdown).toFixed(3)
+            } else {
+              countdownColor = 0
+            }
+          }
+          drawContext.fillStyle = `rgb(255, ${countdownColor}, ${countdownColor})`
+          drawContext.fillText(countdownVal, warningLoc.x, warningLoc.y + 120)
+          drawContext.strokeText(countdownVal, warningLoc.x, warningLoc.y + 120)
+          drawContext.setTransform(1, 0, 0, 1, 0, 0)
+          break;
+        case 'active':
+          drawCCStatus()
+          drawTVEffects(time, Math.min(0.9, Math.max(0.05, (10 - ccData.countdown) / 10)))
+          //drawTVEffects(time, 0.05)
+          drawTVBorder()
+          break;
+        default:
+      }
+      context.drawImage(drawCanvasEle, 0, 0)
+    }
+
+    drawContext.clearRect(0, 0, windowSize.w, windowSize.h)
 
     const drawnElements = effectContainer.querySelectorAll('[data-effect-id]')
     const drawnKeys = {}
@@ -337,14 +683,20 @@ const updateUI = (time) => {
 }
 
 export const initialize = (scope) => {
+  alertContainer = scope.rootElement.querySelector('.btc-alert-container')
   effectContainer = scope.rootElement.querySelector('.btc-effect-container')
   copyContainer = scope.rootElement.querySelector('.btc-copy-container')
   levelContainer = scope.rootElement.querySelector('.btc-combo-level-container')
+  comboCountContainer = scope.rootElement.querySelector('.btc-combo-info-container')
   comboCount = scope.rootElement.querySelector('.btc-combo-count')
   comboCountInner = scope.rootElement.querySelector('.btc-combo-count-inner')
   canvasEle = scope.rootElement.querySelector('.fullscreen-canvas')
   context = canvasEle.getContext('2d')
   blackoutContainer = effectContainer.querySelector('.btc-effect-blackout-container')
+
+  scope.rootElement.querySelector('.fullscreen-canvas-container').addEventListener('click', () => {
+    console.log('clicked')
+  })
 
   window.addEventListener('resize', () => {
     windowSize.w = effectContainer.clientWidth
@@ -359,6 +711,8 @@ export const initialize = (scope) => {
     canvasEle.style.height = `${windowSize.h}px`
     canvasEle.width = windowSize.w
     canvasEle.height = windowSize.h
+    drawCanvasEle.width = windowSize.w
+    drawCanvasEle.height = windowSize.h
 
     clearCanvas()
   })
@@ -376,6 +730,8 @@ export const initialize = (scope) => {
     canvasEle.style.height = `${windowSize.h}px`
     canvasEle.width = windowSize.w
     canvasEle.height = windowSize.h
+    drawCanvasEle.width = windowSize.w
+    drawCanvasEle.height = windowSize.h
 
     clearCanvas()
   }, 50)
@@ -440,21 +796,42 @@ export const initialize = (scope) => {
     }
   })
 
+  scope.$on('BTCEffect-cc', (e, data) => {
+    ccData = data
+  })
+
+  scope.$on('BTCEffect-ccSwitch', (e, data) => {
+    if (data.oldState === 'transition_in' && data.newState === 'active') {
+      comboCountContainer.classList.add('btc-classic-mode')
+      alertContainer.classList.add('btc-classic-mode')
+    } else if (data.oldState === 'transition_out' && data.newState === 'off') {
+      comboCountContainer.classList.remove('btc-classic-mode')
+      alertContainer.classList.remove('btc-classic-mode')
+      clearCCEffectList()
+    }
+    console.log(drawContext)
+    console.log(context)
+  })
+
   scope.$on('BTCFrameUpdate', (e, data) => {
     frameTime = data
   })
 
   comboCountInner.addEventListener('click', (e) => {
-    let count = 1
+    let count = 5
     if (e.shiftKey) {
-      count *= 10
+      count *= 5
     }
     if (e.ctrlKey) {
-      count *= 5
+      count *= 2
     }
     console.log(count)
     bngApi.engineLua(`freeroam_beamTwitchChaos.addRandomCommand(${count})`)
   })
 
   requestAnimationFrame(updateUI)
+}
+
+export {
+  addCCEffect
 }

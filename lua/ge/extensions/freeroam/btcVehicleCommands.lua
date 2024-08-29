@@ -6,6 +6,11 @@ local crazyContraptions = require('freeroam/extras/crazyContraptions')
 
 M.ready = false
 
+local random = math.random
+local min, max = math.min, math.max
+local floor, ceil = math.floor, math.ceil
+local maxInt = math.maxinteger
+
 local commands = {}
 
 local settings = {
@@ -21,6 +26,7 @@ local persistData = {
   inputs = {
     active = false,
     playerDisabled = false,
+    playerDisableLifeLeft = 0,
     throttle = {
       active = false,
       lifeLeft = 0,
@@ -133,7 +139,7 @@ local function parseCommand (commandIn, currentLevel, commandId)
     return nil
   end
 
-  local command, option = commandIn:match("([^_]+)_([^_]+)")
+  local command, option = commandIn:match("([^_]+)_?([^_]*)")
   dump({command, option})
   
   if command == 'sticky' then
@@ -148,6 +154,10 @@ local function parseCommand (commandIn, currentLevel, commandId)
   --   return commands.addInvertSteering(currentLevel)
   -- elseif command == 'invert_throttle' then
   --   return commands.addInvertThrottle(currentLevel)
+  elseif command == "cc" then
+    local input, option = option:match("([^.]+).?([^.]*)")
+    dump({input, option})
+    return commands.addForcedInput(input, currentLevel, option)
   elseif commandIn == 'ghost' then
     return commands.addGhost(currentLevel)
   elseif commandIn == 'alarm' then
@@ -197,23 +207,40 @@ local function parseCommand (commandIn, currentLevel, commandId)
   return nil
 end
 
+local function togglePlayerInputDisable (shouldDisable, disableTime)
+  persistData.inputs.active = true
+  persistData.inputs.playerDisabled = shouldDisable
+  persistData.inputs.playerDisableLifeLeft = disableTime or 60
+end
+
+local function modifyPlayerInputDisable (modifyTime)
+  if persistData.inputs.playerDisabled then
+    persistData.inputs.playerDisableLifeLeft = persistData.inputs.playerDisableLifeLeft + modifyTime
+    return true
+  else
+    return false
+  end
+end
+
 --------------------------
 --\/ INSTANT FUNCTIONS \/--
 --------------------------
 
 local function popTire (level)
-  local tireCount = math.random(1, math.min(2, (level / 15.00)))
+  local tireCount = random(1, min(4, (level / 50)))
   for i = 0, tireCount do
     getPlayerVehicle(0):queueLuaCommand([[
       beamstate.deflateRandomTire()
     ]])
   end
+
+  return true
 end
 
 local function ignite (level)
-  local fireCount = math.random(math.max(5, 1 + (level / 10)), math.min(5, 2 + (level / 5)))
+  local fireCount = random(max(5, 1 + (level / 10)), min(5, 2 + (level / 5)))
   for i = 0, fireCount do
-    be:getPlayerVehicle(0):queueLuaCommand([[
+    getPlayerVehicle(0):queueLuaCommand([[
       local chance = math.random(0, 10)
       if chance > 9 then
         fire.igniteVehicle()
@@ -222,6 +249,8 @@ local function ignite (level)
       end
     ]])
   end
+
+  return true
 end
 
 local function explode (level)
@@ -229,12 +258,16 @@ local function explode (level)
     fire.explodeVehicle()
     beamstate.breakAllBreakgroups()
   ]])
+
+  return true
 end
 
 local function extinguish ()
 	getPlayerVehicle(0):queueLuaCommand([[
     fire.extinguishVehicle()
   ]])
+
+  return true
 end
 
 local function toggleIgnition ()
@@ -248,19 +281,21 @@ local function toggleIgnition ()
       controller.mainController.setStarter(true)
     end
   ]])
+
+  return true
 end
 
 -- DISABLED --
 local function skip (level)
-	local player = be:getPlayerVehicle(0)	
+	local player = getPlayerVehicle(0)	
   if not player then
     return false
   end
   local boundingBox = vehicle:getSpawnWorldOOBB()
-  local chance = math.random(20) <= 10 and 1 or -1
+  local chance = random(20) <= 10 and 1 or -1
   local vel = player:getVelocity()
   local rot = player:getRotation()
-  local pos = boundingBox:getCenter() + (vel * chance * (math.max(1, level / 2.00)))
+  local pos = boundingBox:getCenter() + (vel * chance * (max(1, level / 2.00)))
   
   --player:setPositionNoPhysicsReset(vec3(pos.x, pos.y, pos.z))
   player:SetPositionRotation(be:getPlayerVehicleID(0), pos.x, pos.y, pos.z, rot.x, rot.y, rot.z, rot.w)
@@ -270,7 +305,7 @@ local function skip (level)
 end
 
 local function randomPaint()
-	local player = be:getPlayerVehicle(0)	
+	local player = getPlayerVehicle(0)	
   if not player then
     return false
   end
@@ -283,8 +318,8 @@ local function randomPaint()
 	
 	for i = 1, 3 do
 		local paint = createVehiclePaint(
-			{x = math.random(0, 100) / 100, y = math.random(0, 100) / 100, z = math.random(0, 100) / 100, w = math.random(0, 200) / 100}, 
-			{math.random(0, 100) / 100, math.random(0, 100) / 100, 0, 0}
+			{x = random(0, 100) / 100, y = random(0, 100) / 100, z = random(0, 100) / 100, w = random(0, 200) / 100}, 
+			{random(0, 100) / 100, random(0, 100) / 100, 0, 0}
     )
 		playerData.config.paints[i] = paint
 		core_vehicle_manager.liveUpdateVehicleColors(player:getID(), player, i, paint)
@@ -293,7 +328,7 @@ local function randomPaint()
 end
 
 local function randomTune()
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
   if not crazyContraptions then crazyContraptions = require('freeroam/extras/crazyContraptions') end
@@ -303,7 +338,7 @@ local function randomTune()
 end
 
 local function randomBodyParts(level)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
   if not crazyContraptions then crazyContraptions = require('freeroam/extras/crazyContraptions') end
@@ -318,8 +353,8 @@ local function boost (level, power)
     return false
   end
   local vehDirection = player:getDirectionVector()
-  local mult = 15 * math.max(1.5, (1.01 ^ level))
-  local multTime = 0.5 * math.max(1.5, (1.01 ^ level))
+  local mult = 15 * max(1.5, (1.01 ^ level))
+  local multTime = 0.5 * max(1.5, (1.01 ^ level))
 
   if power == 'l' then
     mult = 20
@@ -368,7 +403,7 @@ local function addStickyInput (type, level, amount)
   local maxMod = type == 'steering' and 0.25 or 1
   persistData.inputs[type] = {
     active = true,
-    lifeLeft = math.min(2 * maxMod, math.max(persistData.inputs[type].lifeLeft or 0, maxMod + settings.levelBonusCommandsModifier * mod * (level) / 2.500)),
+    lifeLeft = min(2 * maxMod, max(persistData.inputs[type].lifeLeft or 0, maxMod + settings.levelBonusCommandsModifier * mod * (level) / 2.500)),
     amount = amount or 1,
   }
 
@@ -380,15 +415,57 @@ local function addStickyInput (type, level, amount)
   return true
 end
 
-local function addForcedInput (type, level, amount)
+local function addForcedInput (input, level, option)
   if not getPlayerVehicle(0) then
     return false
   end
-  local type, option = type:match("([^.]+).([^.]+)")
+
+  local type, amount = nil, 0
+  if input == "left" or input == "right" or input == "straight" then
+    type = "steering"
+    amount = option ~= "" and 0.333 * option or 0
+    amount = input == "right" and amount or amount * -1
+  elseif input == "throttle" then
+    type = "throttle"
+    amount = option ~= "" and option * 0.5 or 0
+
+    persistData.inputs.brake = {
+      active = false,
+      lifeLeft = 0,
+      amount = 0,
+    }
+  elseif input == "brake" then
+    type = "brake"
+    amount = option ~= "" and option * 0.5 or 0
+
+    persistData.inputs.throttle = {
+      active = false,
+      lifeLeft = 0,
+      amount = 0,
+    }
+  elseif input == "gear" then
+    local gearCommand = nil
+    if option == "neutral" then
+      gearCommand = "controller.mainController.shiftToGearIndex(0)"
+    elseif option == "reverse" then
+      gearCommand = "controller.mainController.shiftToGearIndex(-1)"
+    elseif option == "up" then
+      gearCommand = "if controller.mainController.shiftUpOnDown then controller.mainController.shiftUpOnDown() else controller.mainController.shiftUp() end"
+    elseif option == "down" then
+      gearCommand = "if controller.mainController.shiftDownOnDown then controller.mainController.shiftDownOnDown() else controller.mainController.shiftDown() end"
+    end
+
+    if gearCommand then
+      getPlayerVehicle(0):queueLuaCommand(gearCommand)
+      return true
+    else
+      return false
+    end
+  end
 
   persistData.inputs[type] = {
     active = true,
-    lifeLeft = math.min(2 * maxMod, math.max(persistData.inputs[type].lifeLeft or 0, maxMod + settings.levelBonusCommandsModifier * mod * (level) / 2.500)),
+    lifeLeft = 0,
     amount = amount or 1,
   }
 
@@ -408,10 +485,10 @@ local function addInvertSteering (level)
 
   persistData.invertSteering = {
     active = true,
-    lifeLeft = math.min(10, math.max(persistData.invertSteering.lifeLeft or 0, 5 + settings.levelBonusCommandsModifier * (level) / 2.500)),
+    lifeLeft = min(10, max(persistData.invertSteering.lifeLeft or 0, 5 + settings.levelBonusCommandsModifier * (level) / 2.500)),
   }
 
-  be:getPlayerVehicle(0):queueLuaCommand([[
+  getPlayerVehicle(0):queueLuaCommand([[
     local steeringAmount = input.steering
     input.event('steering', -steeringAmount)
   ]])
@@ -422,16 +499,16 @@ end
 
 -- DISABLED --
 local function addInvertThrottle (level)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
 
   persistData.invertThrottle = {
     active = true,
-    lifeLeft = math.min(10, math.max(persistData.invertThrottle.lifeLeft or 0, 5 + settings.levelBonusCommandsModifier * (level) / 2.500)),
+    lifeLeft = min(10, max(persistData.invertThrottle.lifeLeft or 0, 5 + settings.levelBonusCommandsModifier * (level) / 2.500)),
   }
 
-  be:getPlayerVehicle(0):queueLuaCommand([[
+  getPlayerVehicle(0):queueLuaCommand([[
     local throttleAmount = input.throttle
     local brakeAmount = input.brake
     input.event('throttle', brakeAmount)
@@ -443,23 +520,23 @@ local function addInvertThrottle (level)
 end
 
 local function addGhost (level)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
 
-  local maxLevel = math.max(persistData.ghost.level + 1, level)
+  local maxLevel = max(persistData.ghost.level + 1, level)
   persistData.ghost = {
     active = true,
-    lifeLeft = math.max(30, 10 + math.max(20, 2 * (maxLevel * settings.levelBonusCommandsModifier))),
+    lifeLeft = max(30, 10 + max(20, 2 * (maxLevel * settings.levelBonusCommandsModifier))),
     level = maxLevel,
     doors = {
-      openCloseChanceThreshold = math.max(persistData.ghost.doors.openCloseChanceThreshold, (1.05 ^ maxLevel)),
+      openCloseChanceThreshold = max(persistData.ghost.doors.openCloseChanceThreshold, (1.05 ^ maxLevel)),
     },
     lights = {
-      flickerThreshold = math.max(persistData.ghost.lights.flickerThreshold, (1.05 ^ maxLevel)),
+      flickerThreshold = max(persistData.ghost.lights.flickerThreshold, (1.05 ^ maxLevel)),
     },
     horn = {
-      hornThreshold = math.max(3, math.max(persistData.ghost.horn.hornThreshold, (1.02 ^ maxLevel))),
+      hornThreshold = max(3, max(persistData.ghost.horn.hornThreshold, (1.02 ^ maxLevel))),
       hornTimer = 0,
       hornPauseTimer = 0,
     }
@@ -469,31 +546,31 @@ local function addGhost (level)
 end
 
 local function addAlarm (level)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
 
-  local maxLevel = math.max(persistData.alarm.level + 1, level)
+  local maxLevel = max(persistData.alarm.level + 1, level)
   persistData.alarm = {
     active = true,
-    lifeLeft = math.max(persistData.alarm.lifeLeft, math.max(5, 4 + (1 * math.max(1, maxLevel * settings.levelBonusCommandsModifier)))),
+    lifeLeft = max(persistData.alarm.lifeLeft, max(5, 4 + (1 * max(1, maxLevel * settings.levelBonusCommandsModifier)))),
     level = maxLevel,
   }
-  be:getPlayerVehicle(0):queueLuaCommand("electrics.toggle_warn_signal(true)")
+  getPlayerVehicle(0):queueLuaCommand("electrics.toggle_warn_signal(true)")
   
   return true
 end
 
 local function addNudge (level, mult, direction)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
 
   persistData.nudge.active = true
-  persistData.nudge.lifeLeft = math.max(persistData.nudge.lifeLeft, 0.1)
+  persistData.nudge.lifeLeft = max(persistData.nudge.lifeLeft, 0.1)
   persistData.nudge.level = level
   
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local boundingBox = vehicle:getSpawnWorldOOBB()
   local halfExtents = boundingBox:getHalfExtents()
   local vehDirection = vehicle:getDirectionVector()
@@ -503,23 +580,23 @@ local function addNudge (level, mult, direction)
   local center = boundingBox:getCenter() + (vehDirection * vehicleData.massCenter.y) + (vehRight * dirMult)
   
   vehicle:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f})', 
-    center.x, center.y, center.z, 2, -3000000000 * vehicleData.mass * mult * math.min(2, (1.05 ^ persistData.nudge.level))))
+    center.x, center.y, center.z, 2, -3000000000 * vehicleData.mass * mult * min(2, (1.05 ^ persistData.nudge.level))))
   dump(string.format('obj:setPlanets({%f, %f, %f, %d, %f})', 
-  center.x, center.y, center.z, 2, -3000000000 * vehicleData.mass * mult * math.min(2, (1.05 ^ persistData.nudge.level))))
+  center.x, center.y, center.z, 2, -3000000000 * vehicleData.mass * mult * min(2, (1.05 ^ persistData.nudge.level))))
     
   return true
 end
 
 local function addJump (level, power)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
 
   persistData.jump.active = true
-  persistData.jump.lifeLeft = math.max(persistData.jump.lifeLeft, 0.1)
+  persistData.jump.lifeLeft = max(persistData.jump.lifeLeft, 0.1)
   persistData.jump.level = level
   
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local vehDirection = vehicle:getDirectionVector()
   local vehUp = vehicle:getDirectionVectorUp()
   local boundingBox = vehicle:getSpawnWorldOOBB()
@@ -533,13 +610,13 @@ local function addJump (level, power)
   end
   
   vehicle:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f})', 
-    center.x, center.y, center.z, 2, 3000000000 * vehicleData.mass * mult * math.min(2, (1.05 ^ persistData.nudge.level))))
+    center.x, center.y, center.z, 2, 3000000000 * vehicleData.mass * mult * min(2, (1.05 ^ persistData.nudge.level))))
     
   return true
 end
 
 local function addKickflip (level)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
 
@@ -547,7 +624,7 @@ local function addKickflip (level)
   persistData.kickflip.lifeLeft = 0.25
   persistData.kickflip.level = level
   
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local boundingBox = vehicle:getSpawnWorldOOBB()
   local vehDirection = vehicle:getDirectionVector()
   local vehUp = vehicle:getDirectionVectorUp()
@@ -555,13 +632,14 @@ local function addKickflip (level)
   local mult = 1
   
   vehicle:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f})', 
-    center.x, center.y, center.z, 2, 5000000000 * vehicleData.mass * math.min(2, (1.05 ^ persistData.nudge.level))))
+    center.x, center.y, center.z, 2, 5000000000 * vehicleData.mass * min(2, (1.05 ^ persistData.kickflip.level))))
     
   return true
 end
 
 local function addSpin (level)
-  if not be:getPlayerVehicle(0) then
+  local vehicle = getPlayerVehicle(0)
+  if not vehicle then
     return false
   end
 
@@ -569,7 +647,6 @@ local function addSpin (level)
   persistData.spin.lifeLeft = 0.25
   persistData.spin.level = level
   
-  local vehicle = be:getPlayerVehicle(0)
   local boundingBox = vehicle:getSpawnWorldOOBB()
   local halfExtents = boundingBox:getHalfExtents()
   local vehDirection = vehicle:getDirectionVector()
@@ -579,18 +656,21 @@ local function addSpin (level)
     + (vehRight * vehicleData.massCenter.x) - (vehRight * halfExtents.x)-- + (vehUp * vehicleData.massCenter.z)
   local backRight = boundingBox:getCenter() + (vehDirection * vehicleData.massCenter.y) - (vehDirection * halfExtents.y) 
     + (vehRight * vehicleData.massCenter.x) + (vehRight * halfExtents.x)-- + (vehUp * vehicleData.massCenter.z)
-  local randDirection = math.random(20) <= 10 and 1 or -1
-  local mult = 15.5 * randDirection
+  local randDirection = random(20) <= 10 and 1 or -1
+  local mult = 15.5 * randDirection * vehicleData.mass
 
   vehicle:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f, %f, %f, %f, %d, %f})', 
-    frontLeft.x, frontLeft.y, frontLeft.z, 2, 200000000 * mult * math.min(2, (1.05 ^ persistData.nudge.level)), 
-      backRight.x, backRight.y, backRight.z, 2, 200000000 * mult * math.min(2, (1.05 ^ persistData.nudge.level))))
+    frontLeft.x, frontLeft.y, frontLeft.z, 2, 200000000 * mult * min(2, (1.05 ^ persistData.spin.level)), 
+    backRight.x, backRight.y, backRight.z, 2, 200000000 * mult * min(2, (1.05 ^ persistData.spin.level))))
+  dump(string.format('obj:setPlanets({%f, %f, %f, %d, %f, %f, %f, %f, %d, %f})', 
+    frontLeft.x, frontLeft.y, frontLeft.z, 2, 200000000 * mult * min(2, (1.05 ^ persistData.spin.level)), 
+    backRight.x, backRight.y, backRight.z, 2, 200000000 * mult * min(2, (1.05 ^ persistData.spin.level))))
       
   return true
 end
 
 local function addTilt (level, power, direction)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
 
@@ -599,7 +679,7 @@ local function addTilt (level, power, direction)
   persistData.tilt.level = level
   
   local dirMult = direction == 'l' and 1 or -1
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local boundingBox = vehicle:getSpawnWorldOOBB()
   local halfExtents = boundingBox:getHalfExtents()
   local vehDirection = vehicle:getDirectionVector()
@@ -612,23 +692,24 @@ local function addTilt (level, power, direction)
   local mult = 25 * power
 
   vehicle:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f, %f, %f, %f, %d, %f})', 
-    upLeft.x, upLeft.y, upLeft.z, 2, 200000000 * mult * vehicleData.mass * math.min(2, (1.05 ^ persistData.nudge.level)), 
-    downRight.x, downRight.y, downRight.z, 2, 200000000 * mult * vehicleData.mass * math.min(2, (1.05 ^ persistData.nudge.level))))
+    upLeft.x, upLeft.y, upLeft.z, 2, 200000000 * mult * vehicleData.mass * min(2, (1.05 ^ persistData.nudge.level)), 
+    downRight.x, downRight.y, downRight.z, 2, 200000000 * mult * vehicleData.mass * min(2, (1.05 ^ persistData.nudge.level))))
 
   return true
 end
 
+--- Incomplete
 local function addSlam (level)
-  if not be:getPlayerVehicle(0) then
+  if not getPlayerVehicle(0) then
     return false
   end
 
-  local maxLevel = math.max(persistData.slam.level, level)
+  local maxLevel = max(persistData.slam.level, level)
   persistData.slam.active = true
-  persistData.slam.lifeLeft = math.min(15, math.max(persistData.slam.lifeLeft, 5 + (1 * maxLevel)))
+  persistData.slam.lifeLeft = min(15, max(persistData.slam.lifeLeft, 5 + (1 * maxLevel)))
   persistData.slam.level = maxLevel
   
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local boundingBox = vehicle:getSpawnWorldOOBB()
   local halfExtents = boundingBox:getHalfExtents()
   local vehDirection = vehicle:getDirectionVector()
@@ -703,26 +784,30 @@ commands.addSlam              = addSlam
 --\/ HANDLER FUNCTIONS \/--
 ---------------------------
 
-local function handleStickyInput (dt)
-  local anyActive = false
+local function handleInput (dt)
+  if not getPlayerVehicle(0) then
+    return
+  end
+  
+  local anyActive, playerDisable = false, persistData.inputs.playerDisabled
   for k, v in pairs(persistData.inputs) do
-    if k == 'active' then
+    if k == 'active' or k == "playerDisabled" or k == "playerDisableLifeLeft" then
       goto skip
     end
 
-    if v.active then
-      v.lifeLeft = math.max(0, v.lifeLeft - dt)
+    if v.active or playerDisable then
+      v.lifeLeft = playerDisable and v.lifeLeft or max(0, v.lifeLeft - dt)
 
-      be:getPlayerVehicle(0):queueLuaCommand([[
-        input.event(']]..k..[[', ]]..persistData.inputs[k].amount..[[)
-      ]])
-
-      if v.lifeLeft <= 0 then
+      if v.lifeLeft <= 0 and not playerDisable then
         v.active = false
-        be:getPlayerVehicle(0):queueLuaCommand([[
+        getPlayerVehicle(0):queueLuaCommand([[
           input.event(']]..k..[[', 0)
         ]])
+        v.amount = 0
       else
+        getPlayerVehicle(0):queueLuaCommand([[
+          input.event(']]..k..[[', ]]..persistData.inputs[k].amount..[[)
+        ]])
         anyActive = true
       end
     end
@@ -730,22 +815,38 @@ local function handleStickyInput (dt)
     ::skip::
   end
 
-  if not anyActive then
+  if playerDisable then
+    persistData.inputs.playerDisableLifeLeft = persistData.inputs.playerDisableLifeLeft - dt
+    guihooks.trigger('BTCEffect-cc', {
+      state = 'active',
+      inputs = persistData.inputs,
+      countdown = persistData.inputs.playerDisableLifeLeft,
+    })
+
+    if persistData.inputs.playerDisableLifeLeft <= 0 then
+      persistData.inputs.playerDisabled = false
+      playerDisable = false
+
+      freeroam_beamTwitchChaos.stopCrowdEffects()
+    end
+  end
+
+  if not anyActive and not playerDisable then
     persistData.inputs.active = false
   end
 end
 
 -- DISABLED --
 local function handleInvertSteering (dt)
-  persistData.invertSteering.lifeLeft = math.max(0, persistData.invertSteering.lifeLeft - dt)
+  persistData.invertSteering.lifeLeft = max(0, persistData.invertSteering.lifeLeft - dt)
 
   if persistData.invertSteering.lifeLeft <= 0 then
     persistData.invertSteering.active = false
-    be:getPlayerVehicle(0):queueLuaCommand([[
+    getPlayerVehicle(0):queueLuaCommand([[
       input.event('steering', 0)
     ]])
   else
-    be:getPlayerVehicle(0):queueLuaCommand([[
+    getPlayerVehicle(0):queueLuaCommand([[
       local steeringAmount = input.state.steering.val
       dump(steeringAmount)
       input.event('steering', -steeringAmount)
@@ -755,16 +856,16 @@ end
 
 -- DISABLED --
 local function handleInvertThrottle (dt)
-  persistData.invertThrottle.lifeLeft = math.max(0, persistData.invertThrottle.lifeLeft - dt)
+  persistData.invertThrottle.lifeLeft = max(0, persistData.invertThrottle.lifeLeft - dt)
 
   if persistData.invertThrottle.lifeLeft <= 0 then
     persistData.invertThrottle.active = false
-    be:getPlayerVehicle(0):queueLuaCommand([[
+    getPlayerVehicle(0):queueLuaCommand([[
       input.event('throttle', 0)
       input.event('brake', 0)
     ]])
   else
-    be:getPlayerVehicle(0):queueLuaCommand([[
+    getPlayerVehicle(0):queueLuaCommand([[
       local throttleAmount = input.throttle
       local brakeAmount = input.brake
       input.event('throttle', brakeAmount)
@@ -796,9 +897,9 @@ local function handleGhost (dt)
   end
 
   -- Doors
-  local chance = math.random(0, 1000)
+  local chance = random(0, 1000)
   if chance < persistData.ghost.doors.openCloseChanceThreshold then
-    be:getPlayerVehicle(0):queueLuaCommand([[
+    getPlayerVehicle(0):queueLuaCommand([[
       local totalCouplerCount = #controller.getControllersByType("advancedCouplerControl")
 
       local door = math.random(totalCouplerCount)
@@ -819,35 +920,35 @@ local function handleGhost (dt)
   end
 
   -- Lights
-  chance = math.random(0, 1000)
+  chance = random(0, 1000)
   if chance < persistData.ghost.lights.flickerThreshold then
-    chance = math.random(0, 10)
+    chance = random(0, 10)
     if chance == 1 or chance == 9 then
-      be:getPlayerVehicle(0):queueLuaCommand("electrics.toggle_fog_lights()")
+      getPlayerVehicle(0):queueLuaCommand("electrics.toggle_fog_lights()")
     elseif chance == 2 or chance == 7 then
-      be:getPlayerVehicle(0):queueLuaCommand("electrics.setLightsState(0)")
+      getPlayerVehicle(0):queueLuaCommand("electrics.setLightsState(0)")
     elseif chance == 3 or chance == 4 then
-      be:getPlayerVehicle(0):queueLuaCommand("electrics.setLightsState(1)")
+      getPlayerVehicle(0):queueLuaCommand("electrics.setLightsState(1)")
     elseif chance == 5 or chance == 6 then
-      be:getPlayerVehicle(0):queueLuaCommand("electrics.setLightsState(2)")
+      getPlayerVehicle(0):queueLuaCommand("electrics.setLightsState(2)")
     elseif chance == 8 or chance == 0 then
-      be:getPlayerVehicle(0):queueLuaCommand("electrics.toggle_right_signal()")
+      getPlayerVehicle(0):queueLuaCommand("electrics.toggle_right_signal()")
     else
-      be:getPlayerVehicle(0):queueLuaCommand("electrics.toggle_left_signal()")
+      getPlayerVehicle(0):queueLuaCommand("electrics.toggle_left_signal()")
     end
   end
 
   -- Horn
-  chance = math.random(0, 3000)
+  chance = random(0, 3000)
   if chance < persistData.ghost.horn.hornThreshold and persistData.ghost.horn.hornTimer == 0 and persistData.ghost.horn.hornPauseTimer == 0 then
-    time = math.max(5, math.random(100, 1000) * (persistData.ghost.level / 10.0) / 1000.00)
-    persistData.ghost.horn.hornPauseTimer = math.max(0.1, time / 10)
+    time = max(5, random(100, 1000) * (persistData.ghost.level / 10.0) / 1000.00)
+    persistData.ghost.horn.hornPauseTimer = max(0.1, time / 10)
     persistData.ghost.horn.hornTimer = time
   elseif persistData.ghost.horn.hornTimer > 0 then
-    persistData.ghost.horn.hornTimer = math.max(0, persistData.ghost.horn.hornTimer - dt)
+    persistData.ghost.horn.hornTimer = max(0, persistData.ghost.horn.hornTimer - dt)
     persistData.horn = true    
   elseif persistData.ghost.horn.hornPauseTimer > 0 then
-    persistData.ghost.horn.hornPauseTimer = math.max(0, persistData.ghost.horn.hornPauseTimer - dt)
+    persistData.ghost.horn.hornPauseTimer = max(0, persistData.ghost.horn.hornPauseTimer - dt)
   end
 end
 
@@ -860,70 +961,70 @@ local function handleAlarm (dt)
       lifeLeft = 0,
       level = 0,
     }
-    be:getPlayerVehicle(0):queueLuaCommand("electrics.toggle_warn_signal(false)")
+    getPlayerVehicle(0):queueLuaCommand("electrics.toggle_warn_signal(false)")
     return
   end
 
-  if math.floor(persistData.alarm.lifeLeft * 2) % 2 == 0 then
+  if floor(persistData.alarm.lifeLeft * 2) % 2 == 0 then
     persistData.horn = true
   end
 end
 
 local function handleNudge (dt)
-  persistData.nudge.lifeLeft = math.max(0, persistData.nudge.lifeLeft - dt)
+  persistData.nudge.lifeLeft = max(0, persistData.nudge.lifeLeft - dt)
 
   if persistData.nudge.lifeLeft == 0 then
     persistData.nudge.active = false
     persistData.nudge.level = 0
-    be:getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
+    getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
     return
   end
 end
 
 local function handleJump (dt)
-  persistData.jump.lifeLeft = math.max(0, persistData.jump.lifeLeft - dt)
+  persistData.jump.lifeLeft = max(0, persistData.jump.lifeLeft - dt)
 
   if persistData.jump.lifeLeft == 0 then
     persistData.jump.active = false
     persistData.jump.level = 0
-    be:getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
+    getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
     return
   end
 end
 
 local function handleTilt (dt)
-  persistData.tilt.lifeLeft = math.max(0, persistData.tilt.lifeLeft - dt)
+  persistData.tilt.lifeLeft = max(0, persistData.tilt.lifeLeft - dt)
 
   if persistData.tilt.lifeLeft == 0 then
     persistData.tilt.active = false
     persistData.tilt.level = 0
-    be:getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
+    getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
     return
   end
 end
 
 local function handleSpin (dt)
-  persistData.spin.lifeLeft = math.max(0, persistData.spin.lifeLeft - dt)
+  persistData.spin.lifeLeft = max(0, persistData.spin.lifeLeft - dt)
 
   if persistData.spin.lifeLeft == 0 then
     persistData.spin.active = false
     persistData.spin.level = 0
-    be:getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
+    getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
     return
   end
 end
 
 local function handleSlam (dt)
-  persistData.slam.lifeLeft = math.max(0, persistData.slam.lifeLeft - dt)
+  persistData.slam.lifeLeft = max(0, persistData.slam.lifeLeft - dt)
 
   if persistData.slam.lifeLeft == 0 then
     persistData.slam.active = false
     persistData.slam.level = 0
-    be:getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
+    getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
     return
   else
   
-    local vehicle = be:getPlayerVehicle(0)
+    local vehicle = getPlayerVehicle(0)
     local boundingBox = vehicle:getSpawnWorldOOBB()
     local halfExtents = boundingBox:getHalfExtents()
     local vehDirection = vehicle:getDirectionVector()
@@ -936,16 +1037,16 @@ end
 
 local function handleKickflip (dt)
   local prevLifeLeft = persistData.kickflip.lifeLeft
-  persistData.kickflip.lifeLeft = math.max(0, persistData.kickflip.lifeLeft - dt)
+  persistData.kickflip.lifeLeft = max(0, persistData.kickflip.lifeLeft - dt)
 
   if persistData.kickflip.lifeLeft == 0 then
     persistData.kickflip.active = false
     persistData.kickflip.level = 0
-    be:getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
+    getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
     return
   elseif persistData.kickflip.lifeLeft < 0.125 and prevLifeLeft >= 0.125 then
     -- Spin
-    local vehicle = be:getPlayerVehicle(0)
+    local vehicle = getPlayerVehicle(0)
     local boundingBox = vehicle:getSpawnWorldOOBB()
     local halfExtents = boundingBox:getHalfExtents()
     local center = boundingBox:getCenter()
@@ -958,12 +1059,12 @@ local function handleKickflip (dt)
       + (vehDirection * halfExtents.y) + (vehRight * vehicleData.massCenter.x) - (vehRight * halfExtents.x) + vehUp
     local backRight = boundingBox:getCenter() + (vehDirection * vehicleData.massCenter.y) 
       - (vehDirection * halfExtents.y) + (vehRight * vehicleData.massCenter.x) + (vehRight * halfExtents.x) - vehUp
-    local randDirection = math.random(20) <= 10 and 1 or -1
-    local mult = 15.5 * randDirection
+    local randDirection = random(20) <= 10 and 1 or -1
+    local mult = 15.5 * randDirection * vehicleData.mass
     
     vehicle:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f, %f, %f, %f, %d, %f})', 
-      frontLeft.x, frontLeft.y, frontLeft.z, 2, 200000000 * mult * vehicleData.mass * (1.05 ^ persistData.kickflip.level), 
-      backRight.x, backRight.y, backRight.z, 2, 200000000 * mult * vehicleData.mass * (1.05 ^ persistData.kickflip.level)))  
+      frontLeft.x, frontLeft.y, frontLeft.z, 2, 200000000 * mult * (1.05 ^ persistData.kickflip.level), 
+      backRight.x, backRight.y, backRight.z, 2, 200000000 * mult * (1.05 ^ persistData.kickflip.level)))  
   end
 end
 
@@ -976,13 +1077,7 @@ local function handleTick (dt)
   persistData.horn = false
 
   if persistData.inputs.active then
-    handleStickyInput(dt)
-  end
-  if persistData.invertSteering.active then
-    handleInvertSteering(dt)
-  end
-  if persistData.invertThrottle.active then
-    handleInvertThrottle(dt)
+    handleInput(dt)
   end
   if persistData.ghost.active then
     handleGhost(dt)
@@ -1036,6 +1131,8 @@ local function calculateVehicleStats (id)
     vehicleData.mass = 2000 -- failsafe
     vehicleData.massCenter = vec3()
   end
+
+  return vehicleData
 end
 
 local function onVehicleSwitched (old, new)
@@ -1078,14 +1175,18 @@ local function onExtensionLoaded ()
 end
 
 --M.commands = commands
-M.setSettings = setSettings
-M.handleTick = handleTick
-M.parseCommand = parseCommand
+M.setSettings               = setSettings
+M.handleTick                = handleTick
+M.parseCommand              = parseCommand
+M.togglePlayerInputDisable  = togglePlayerInputDisable
+M.modifyPlayerInputDisable  = modifyPlayerInputDisable
+M.calculateVehicleStats     = calculateVehicleStats
+M.vehicleData               = vehicleData
 
 M.onSerialize         = onSerialize
 M.onDeserialized      = onDeserialized
 M.onExtensionLoaded   = onExtensionLoaded
 
-M.onVehicleSwitched = onVehicleSwitched
+M.onVehicleSwitched   = onVehicleSwitched
 
 return M

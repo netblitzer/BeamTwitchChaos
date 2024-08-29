@@ -87,7 +87,7 @@ local pools = {
           ['vehicles/cones/large.pc'] = 1,
           ['vehicles/cones/small.pc'] = 1,
         },
-        upDir = 'backward',
+        upDir = 'forward',
       },
     },
     upDirs = {},
@@ -221,7 +221,7 @@ local pools = {
 --------------------------
 
 local function init ()
-  local playerVeh = be:getPlayerVehicle(0)
+  local playerVeh = getPlayerVehicle(0)
   local playerVehId = playerVeh and playerVeh:getId() or nil
   if not core_vehiclePoolingManager then extensions.load('core_vehiclePoolingManager') end
   -- _group = extensions.core_multispawn.createGroup(spawnCount, 
@@ -246,24 +246,26 @@ local function init ()
   end
 
   -- Check for objects from saved IDs
-  --if _spawnedVehData ~= nil and _spawnedVehData ~= {} then
-  --  for k, v in pairs(_spawnedVehData) do
-  --    if pools[k] and type(v) == "table" then
-  --      for _, c in pairs(v) do
-  --        local vehTest = be:getObjectByID(c)
-  --        if vehTest and c ~= playerVehId then
-  --          spawnedVehCounts[k] = spawnedVehCounts[k] + 1
-  --          pools[k].p:insertVeh(c, true)
-  --          vehTest:setActive(0)
-  --          table.insert(spawnedVehIds[k], c)
-  --        end
-  --      end
-  --    end
-  --  end
-  --end
-  --if settings.debug then
-  --  dump(spawnedVehCounts)
-  --end
+  --[[ Currently disabled
+  if _spawnedVehData ~= nil and _spawnedVehData ~= {} then
+    for k, v in pairs(_spawnedVehData) do
+      if pools[k] and type(v) == "table" then
+        for _, c in pairs(v) do
+          local vehTest = be:getObjectByID(c)
+          if vehTest and c ~= playerVehId then
+            spawnedVehCounts[k] = spawnedVehCounts[k] + 1
+            pools[k].p:insertVeh(c, true)
+            vehTest:setActive(0)
+            table.insert(spawnedVehIds[k], c)
+          end
+        end
+      end
+    end
+  end
+  if settings.debug then
+    dump(spawnedVehCounts)
+  end
+  ]]
 
   -- Checked for objects from spawned IDs
   for poolName, pool in pairs(pools) do
@@ -370,6 +372,11 @@ end
 
 local function parseCommand (commandIn, currentLevel, commandId)
   if not commandIn then
+    return nil
+  end
+
+  if not getPlayerVehicle(0) then 
+    log('E', logTag, "ERROR: No player exists!")
     return nil
   end
 
@@ -601,7 +608,7 @@ local function handleHeyAI (dt)
     return
   end
 
-  local vehicle = be:getPlayerVehicle(0)
+  local vehicle = getPlayerVehicle(0)
   local position = vehicle:getPosition()
 
   for _, v in pairs(soundIds) do
@@ -671,10 +678,11 @@ local function handlePropBasic (dt, poolName, velOffset, posOffset)
   velOffset = velOffset or 2
   posOffset = posOffset or 0
 
-  local player = be:getPlayerVehicle(0)
-  local playerPos = player:getPosition()
-  local playerVel = player:getVelocity()
-  local playerDirection = player:getDirectionVector()
+  local player = getPlayerVehicle(0)
+  if not player then 
+    log('E', logTag, "ERROR: No player exists to drop a prop on!")
+    return 
+  end
   local nextProp = nil
 
   for k, v in pairs(persistData[poolName]) do
@@ -709,6 +717,10 @@ local function handlePropBasic (dt, poolName, velOffset, posOffset)
       ::queuePopped::
       local nextHeight = core_environment.getGravity() * -2
       if nextProp then
+        local playerPos = freeroam_btcVehicleCommands.vehicleData.massCenter or player:getPosition()
+        local playerVel = player:getVelocity()
+        local playerDirection = player:getDirectionVector()
+
         local nextPos = playerPos + (playerVel * velOffset) + vec3(0, 0, nextHeight) + (playerDirection * posOffset)
         local nextRot = quat()
         local nextUpDir = pools[poolName].upDirs[nextProp:getId()]
@@ -741,12 +753,17 @@ local function handleFlock (dt)
     return
   end
 
+  local player = getPlayerVehicle(0)
+  if not player then 
+    log('E', logTag, "ERROR: No player exists to drop a prop on!")
+    return 
+  end
+
   for k, v in pairs(persistData.flock) do
     if k == 'count' then goto skip end
     if k == 'anyActive' then goto skip end
 
     if v.active then
-      local player = be:getPlayerVehicle(0)
       local playerPos = player:getPosition()
       for k2, v2 in pairs(v.props) do
         if k2 == 'count' then goto skip2 end
@@ -823,6 +840,12 @@ local function handleTraffic (dt)
     return
   end
 
+  local player = getPlayerVehicle(0)
+  if not player then 
+    log('E', logTag, "ERROR: No player exists to drop a prop on!")
+    return 
+  end
+
   for k, v in pairs(persistData.traffic) do
     if k == 'count' then goto skip end
     if k == 'anyActive' then goto skip end
@@ -853,7 +876,6 @@ local function handleTraffic (dt)
       v.active = true
       persistData.traffic.anyActive = true
       
-      local player = be:getPlayerVehicle(0)
       local playerPos = player:getPosition()
       local playerDirection = player:getDirectionVector()
       local playerUp = player:getDirectionVectorUp()
@@ -877,9 +899,13 @@ local function handleMeteors (dt)
     return
   end
 
-  persistData.meteors.lifeLeft = persistData.meteors.lifeLeft - dt
+  local player = getPlayerVehicle(0)
+  if not player then 
+    log('E', logTag, "ERROR: No player exists to drop meteors on!")
+    return 
+  end
 
-  local player = be:getPlayerVehicle(0)
+  persistData.meteors.lifeLeft = persistData.meteors.lifeLeft - dt
   local nextProp = nil
 
   -- Go through current spawned rocks
@@ -899,7 +925,7 @@ local function handleMeteors (dt)
       if v.prevRockVel and v.prevRockVel:dot(rockVel) < 0.1 or v.lifeLeft <= 0 then
         -- Probably hit the ground or something else, explode
         local command = string.format('obj:setPlanets({%f, %f, %f, %d, %f})', center.x, center.y, center.z, 7.5, vehicleSizeFactor * vehicleSizeFactor * -1e16 * 3)
-        dump(vehicleSizeFactor)
+        --dump(vehicleSizeFactor)
 
         for i = 0, be:getObjectCount() - 1 do
           local veh = be:getObject(i)
@@ -995,10 +1021,15 @@ local function handleFireworks (dt)
     log('W', logTag, "No traffic spawned!")
     return
   end
+
+  local player = getPlayerVehicle(0)
+  if not player then 
+    log('E', logTag, "ERROR: No player exists to drop a prop on!")
+    return 
+  end
   persistData.fireworks.lifeLeft = persistData.fireworks.lifeLeft - dt
 
   local trafficPool = gameplay_traffic.getTrafficPool()
-  local player = be:getPlayerVehicle(0)
   local playerPos = player:getPosition()
 
   for k, v in pairs(persistData.fireworks.props) do

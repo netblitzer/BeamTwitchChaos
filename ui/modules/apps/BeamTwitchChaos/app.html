@@ -5,10 +5,15 @@
         Other icons by Fasil on freeicons.io 
     -->
 
-  <link href="/ui/modules/apps/beamTwitchChaos/main.css" rel="stylesheet">
+  <link href="/ui/modules/apps/BeamTwitchChaos/fonts/W95FA.otf" rel="preload" as="font" type="font/otf" crossorigin >
+  <link href="/ui/modules/apps/BeamTwitchChaos/fonts/w95fa.woff" rel="preload" as="font" type="font/woff" crossorigin >
+  <link href="/ui/modules/apps/BeamTwitchChaos/main.css" rel="stylesheet">
+
+  <div class="btc-hidden">
+    <div id="windows95font">loader</div>
+  </div>
 
   <div class="fullscreen-canvas-container">
-    <canvas class="fullscreen-canvas"></canvas>
     <div class="btc-copy-container btc-hidden">
       <div class="btc-ad-1" data-min-width="200" data-max-width="400" data-min-height="250" data-max-height="300">
         <div class="ad-title-bar">
@@ -187,6 +192,7 @@
         Vehicle load check in: 0 (may cause lag)
       </div>
     </div>
+    <canvas class="fullscreen-canvas"></canvas>
   </div>
 
   <div class="btc-server-container">

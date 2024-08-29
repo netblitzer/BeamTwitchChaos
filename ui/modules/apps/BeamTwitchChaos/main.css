@@ -1,6 +1,6 @@
-/*!****************************************************************************************************************!*\
-  !*** css ./node_modules/css-loader/dist/cjs.js!./node_modules/less-loader/dist/cjs.js!./src/styles/index.less ***!
-  \****************************************************************************************************************/
+/*!********************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]!./node_modules/less-loader/dist/cjs.js!./src/styles/index.less ***!
+  \********************************************************************************************************************************************/
 * {
   box-sizing: border-box;
   overflow: visible;
@@ -66,6 +66,15 @@
   top: 0;
   height: 100vh;
   width: 100vw;
+  pointer-events: none;
+  z-index: 1000;
+}
+@font-face {
+  font-family: Windows95;
+  src: local('W95FA'), url(/ui/modules/apps/BeamTwitchChaos/fonts/W95FA.otf) format('opentype'), url(/ui/modules/apps/BeamTwitchChaos/fonts/w95fa.woff) format('woff');
+}
+#windows95font {
+  font-family: Windows95;
 }
 .btc-button-container,
 .btc-server-container {
@@ -342,6 +351,12 @@
   top: 110px;
   left: 57px;
 }
+.btc-combo-info-container.btc-classic-mode {
+  left: 105px;
+}
+.btc-combo-info-container.btc-classic-mode .btc-combo-count {
+  font-family: 'Windows95';
+}
 .btc-combo-info-container .btc-combo-count {
   position: absolute;
   width: 0;
@@ -389,6 +404,9 @@
 .btc-alert-container {
   margin: 15% 25% 0 25%;
   z-index: 10;
+}
+.btc-alert-container.btc-classic-mode .btc-effect-alert {
+  font-family: 'Windows95';
 }
 .btc-alert-container .btc-effect-alert {
   display: block;
@@ -514,6 +532,9 @@
 .btc-flex.flex-column {
   flex-flow: column nowrap;
   align-content: center;
+}
+.oldschool-font {
+  font-family: 'Windows95';
 }
 .btc-ad-1,
 .btc-ad-4,
@@ -731,13 +752,13 @@
   max-height: 200px;
 }
 .btc-ad-7 {
-  background-image: url(16f5f86eeafa11c9d406.png);
+  background-image: url("/ui/modules/apps/BeamTwitchChaos/images/flamers_airbnb.png");
 }
 .btc-ad-8 {
-  background-image: url(66738fd368f51ccca91b.png);
+  background-image: url("/ui/modules/apps/BeamTwitchChaos/images/flamers_airbnb2.png");
 }
 .btc-ad-13 {
-  background-image: url(790fb89a26effab7820e.png);
+  background-image: url("/ui/modules/apps/BeamTwitchChaos/images/flamers_3.png");
 }
 .btc-ad-7,
 .btc-ad-13,
@@ -779,7 +800,7 @@
   background: #364;
 }
 .btc-ad-14 {
-  background-image: url(0484f2e0beb61d8a0fc9.png);
+  background-image: url("/ui/modules/apps/BeamTwitchChaos/images/clippy.png");
   display: flex;
   border-radius: 5%;
   background-size: cover;

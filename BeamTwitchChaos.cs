@@ -18,7 +18,7 @@ public class BeamNG : SimpleTCPPack {
 
     public BeamNG (UserRecord player, Func<CrowdControlBlock, bool> responseHandler, Action<object> statusUpdateHandler) : base(player, responseHandler, statusUpdateHandler) { }
 
-    public override Game Game { get; } = new("BeamNG.Drive", "BeamNG", "PC", ConnectorType.SimpleTCPServerConnector);
+    public override Game Game { get; } = new("BeamNG.Drive", "BeamNG", "PC", ConnectorType.SimpleTCPServerConnector) { Hidden = Game.HiddenState.EarlyAccess};
 
     public static ParameterDef GravityParameters { get; } = new ParameterDef("Gravity", "gravity",
         new Parameter("Pluto", "grav_pluto"),
@@ -30,20 +30,20 @@ public class BeamNG : SimpleTCPPack {
         new Parameter("Jupiter", "grav_jupiter")
     );
 
-    public static ParameterDef SimspeedParameters { get; } = new ParameterDef("Sim Speed", "simspeed", 
+    public static ParameterDef SimspeedParameters { get; } = new ParameterDef("Sim Speed", "simspeed",
         new Parameter("Real Speed", "time_1"),
         new Parameter("Half Speed", "time_2"),
         new Parameter("1/4 Speed", "time_4"),
         new Parameter("1/8 Speed", "time_8"),
-        new Parameter("1/16 Speed", "time_16")   
+        new Parameter("1/16 Speed", "time_16")
     );
 
-    public static string UiEffects = "UI Effects";
-    public static string VehicleEffects = "Vehicle Effects";
-    public static string EnvironmentEffects = "Environment Effects";
-    public static string CameraEffects = "Camera Effects";
-    public static string FunEffects = "Fun Effects";
-    public static string CcEffects = "Crowd Effects";
+    public const string UiEffects = "UI Effects";
+    public const string VehicleEffects = "Vehicle Effects";
+    public const string EnvironmentEffects = "Environment Effects";
+    public const string CameraEffects = "Camera Effects";
+    public const string FunEffects = "Fun Effects";
+    public const string CcEffects = "Crowd Effects";
 
     public override EffectList Effects { get; } = new Effect[] {
         new("Add a DVD Logo", "dvd") { Price = 15, Description = "Something everyone in chat can watch", Quantity = new QuantityRange(1, 10), DefaultQuantity = 1, Category = UiEffects },
@@ -130,16 +130,25 @@ public class BeamNG : SimpleTCPPack {
         new("Fireworks", "fireworks") { Price = 100, Description = "Celebrate whatever you want!", Category = FunEffects },
 
         //new("Crowd Control", "cc_effect", ItemKind.Folder
-        new("Activate Crowd Control", "cc_activate") { Price = 500, Description = "Take complete control", SessionCooldown = SITimeSpan.FromMinutes(4), Category = CcEffects },
-        new("Throttle (1 second)", "cc_throttle_1") { Disabled = true, Group = "cc_effect", Price = 2, Description = "Throttle for one second", Category = CcEffects },
-        new("Throttle (3 second)", "cc_throttle_3") { Disabled = true, Group = "cc_effect", Price = 5, Description = "Throttle for three seconds", Category = CcEffects},
-        new("Throttle (5 second)", "cc_throttle_5") { Disabled = true, Group = "cc_effect", Price = 10, Description = "Throttle for five seconds", Category = CcEffects },
-        new("Straighten Steering", "cc_straight") { Disabled = true, Group = "cc_effect", Price = 10, Description = "Straighten the steering wheel", Category = CcEffects },
-        new("Steer Slight Left", "cc_left_1") { Disabled = true, Group = "cc_effect", Price = 10, Description = "Steer slightly left (15 degrees)", Category = CcEffects },
-        new("Steer More Left", "cc_left_2") { Disabled = true, Group = "cc_effect", Price = 10, Description = "Steer left (30 degrees)", Category = CcEffects },
-        new("Steer Hard Left", "cc_left_3") { Disabled = true, Group = "cc_effect", Price = 10, Description = "Steer left (45 degrees)", Category = CcEffects },
-        new("Steer Slight Right", "cc_right_1") { Disabled = true, Group = "cc_effect", Price = 10, Description = "Steer slightly right (15 degrees)", Category = CcEffects },
-        new("Steer More Right", "cc_right_2") { Disabled = true, Group = "cc_effect", Price = 10, Description = "Steer right (30 degrees)", Category = CcEffects },
-        new("Steer Hard Right", "cc_right_3") { Disabled = true, Group = "cc_effect", Price = 10, Description = "Steer right (45 degrees)", Category = CcEffects },
+        new("Take Complete Control", "cc_activate") { Price = 500, Description = "Take complete control", SessionCooldown = SITimeSpan.FromMinutes(5), Category = CcEffects },
+        new("Stay in Control", "cc_continue.1") { Group = "cc_effect", Price = 125, Description = "Stay in control for even longer", Category = CcEffects },
+        new("Stay in Control", "cc_continue.2") { Group = "cc_effect", Price = 250, Description = "Stay in control for even longer", Category = CcEffects },
+        new("Throttle (Off)", "cc_throttle.0") { Group = "cc_effect", Price = 2, Description = "Disengage the throttle", Category = CcEffects },
+        new("Throttle (50%)", "cc_throttle.1") { Group = "cc_effect", Price = 2, Description = "Set throttle to 50%", Category = CcEffects },
+        new("Throttle (100%)", "cc_throttle.2") { Group = "cc_effect", Price = 2, Description = "Set throttle to 100%", Category = CcEffects},
+        new("Steer Straight (0 degrees)", "cc_straight") { Group = "cc_effect", Price = 2, Description = "Straighten the steering wheel", Category = CcEffects },
+        new("Steer Left (15 degrees)", "cc_left.1") { Group = "cc_effect", Price = 2, Description = "Steer slightly left (15 degrees)", Category = CcEffects },
+        new("Steer Left (30 degrees)", "cc_left.2") { Group = "cc_effect", Price = 2, Description = "Steer left (30 degrees)", Category = CcEffects },
+        new("Steer Left (45 degrees)", "cc_left.3") { Group = "cc_effect", Price = 2, Description = "Steer left (45 degrees)", Category = CcEffects },
+        new("Steer Right (15 degrees)", "cc_right.1") { Group = "cc_effect", Price = 2, Description = "Steer slightly right (15 degrees)", Category = CcEffects },
+        new("Steer Right (30 degrees)", "cc_right.2") { Group = "cc_effect", Price = 2, Description = "Steer right (30 degrees)", Category = CcEffects },
+        new("Steer Right (45 degrees)", "cc_right.3") { Group = "cc_effect", Price = 2, Description = "Steer right (45 degrees)", Category = CcEffects },
+        new("Brake (Off)", "cc_brake.0") { Group = "cc_effect", Price = 2, Description = "Disengage the brakes", Category = CcEffects },
+        new("Brake (50%)", "cc_brake.1") { Group = "cc_effect", Price = 2, Description = "Set brakes to 50%", Category = CcEffects },
+        new("Brake (100%)", "cc_brake.2") { Group = "cc_effect", Price = 2, Description = "Set brakes to 100%", Category = CcEffects },
+        new("Gear Up", "cc_gear.up") { Group = "cc_effect", Price = 2, Description = "Gear up", Category = CcEffects },
+        new("Gear Down", "cc_gear.down") { Group = "cc_effect", Price = 2, Description = "Gear down", Category = CcEffects },
+        new("Gear to Neutral", "cc_gear.neutral") { Group = "cc_effect", Price = 2, Description = "Set gear to neutral", Category = CcEffects },
+        new("Gear to Reverse", "cc_gear.reverse") { Group = "cc_effect", Price = 2, Description = "Set gear to reverse", Category = CcEffects },
     };
 }

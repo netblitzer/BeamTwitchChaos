@@ -71,6 +71,7 @@ local settings = {
   },
   debug = true,
   debugVerbose = true,
+  fullTwitchMode = false,
 }
 
 local defaultSettings = {
@@ -86,6 +87,7 @@ local defaultSettings = {
   },
   debug = true,
   debugVerbose = false,
+  fullTwitchMode = false,
 }
 
 local commands = {}
@@ -93,17 +95,6 @@ local commands = {}
 local persistData = {
   lastCommandId = 0,
   lastReceivedId = 0,
-  ea = {
-    count = 0,
-  },
-  faultyGears = {
-    count = 0,
-  },
-  vehicleCanBeModified = {
-    active = false,
-    distanceTravelled = 0,
-    origSpawnLoc = vec3(),
-  },
   combo = {
     current = 0,
     highest = 0,
@@ -119,6 +110,11 @@ local persistData = {
     },
   },
   respondQueue = { },
+
+  totalControl = {
+    state = 'off',
+    countdown = 5,
+  },
 }
 local resetPersistData = { }
 
@@ -134,12 +130,41 @@ local gameLoading = true
 
 local triggerSoundId = nil
 
+local crowdEffects = {
+  "cc_continue",
+  "cc_throttle.0",
+  "cc_throttle.1",
+  "cc_throttle.2",
+  "cc_straight",
+  "cc_left.1",
+  "cc_left.2",
+  "cc_left.3",
+  "cc_right.1",
+  "cc_right.2",
+  "cc_right.3",
+  "cc_brake.0",
+  "cc_brake.1",
+  "cc_brake.2",
+  "cc_gear.up",
+  "cc_gear.down",
+  "cc_gear.neutral",
+  "cc_gear.reverse",
+}
+
+local inverseCrowdEffets = {
+  "sticky_throttle",
+  "sticky_parkingbrake",
+  "sticky_brake",
+  "sticky_turn_l",
+  "sticky_turn_r",
+}
+
 --------------------------
 --\/ APP/UI FUNCTIONS \/--
 --------------------------
 
 local function sendDebugData ()
-  be:getPlayerVehicle(0):queueLuaCommand([[
+  getPlayerVehicle(0):queueLuaCommand([[
     --guihooks.trigger('BTCDebug-DATA', v)
     --guihooks.trigger('BTCDebug-DATA', controller)
     guihooks.trigger('BTCDebug-DATA', controller.getAllControllers)
@@ -150,6 +175,76 @@ local function sendDebugData ()
   local vDat = core_vehicle_manager.getPlayerVehicleData()
   --dump(vDat)
   guihooks.trigger('BTCDebug-DATA', vDat)
+end
+
+--- Toggles the crowd effect commands
+--- @param shouldEnableCrowdEffects bool Whether crowd effect commands should be enabled or not
+local function toggleCrowdEffects (shouldEnableCrowdEffects)
+  for i = 1, #crowdEffects do
+    persistData.respondQueue['cc_effects_e'..i] = {
+      idType = 0,
+      code = crowdEffects[i],
+      type = 1,
+      status = shouldEnableCrowdEffects and 0x80 or 0x81,
+    }
+  end
+  for i = 1, #inverseCrowdEffets do
+    persistData.respondQueue['cc_effects_d'..i] = {
+      idType = 0,
+      code = inverseCrowdEffets[i],
+      type = 1,
+      status = shouldEnableCrowdEffects and 0x81 or 0x80,
+    }
+  end
+  -- If we're disbaling crowd effects, make sure to disable the continue effects
+  --  Also make sure to reenable the activate command
+  if not shouldEnableCrowdEffects then
+    persistData.respondQueue['cc_effects_d.continue.1'] = {
+      idType = 0,
+      code = "cc_continue.1",
+      type = 1,
+      status = 0x81,
+    }
+    persistData.respondQueue['cc_effects_d.continue.2'] = {
+      idType = 0,
+      code = "cc_continue.2",
+      type = 1,
+      status = 0x81,
+    }
+    persistData.respondQueue['cc_effects_e.activate'] = {
+      idType = 0,
+      code = "cc_activate",
+      type = 1,
+      status = 0x80,
+    }
+  end
+end
+
+--- Sends messages to CC to disable crowd effect commands
+local function stopCrowdEffects ()
+  if settings.debug then
+    log(logTag, "I", "Crowd Effects timer has ended")
+  end
+  -- Turn on the return countdown
+  persistData.totalControl = {
+    state = "transition_out",
+    countdown = 1,
+  }
+end
+
+local function startCrowdEffects ()
+  local totalControlTime = min(120, 60 + persistData.combo.level)
+  btcVehicle.togglePlayerInputDisable(true, totalControlTime)
+  -- Enable all the crowd effect commands
+  toggleCrowdEffects(true)
+  
+  -- Enable the first continue event
+  persistData.respondQueue['cc_effects_e.continue.1'] = {
+    idType = 0,
+    code = "cc_continue.1",
+    type = 1,
+    status = 0x80,
+  }
 end
 
 local parseQueue = {}
@@ -183,6 +278,57 @@ local function addNewCommand (command, selfCreated)
     --commands.heyAI(persistData.combo.level, 1)
     respondToCommand(command, true, selfCreated)
     unfilteredCommandParsed = true
+    goto commandParsed
+  elseif command.code == "cc_activate" then
+    -- Turn on the countdown
+    persistData.totalControl = {
+      state = "countdown",
+      countdown = 5,
+    }
+    -- Disable the start command
+    persistData.respondQueue['cc_activate_d'] = {
+      idType = 0,
+      code = "cc_activate",
+      type = 1,
+      status = 0x81,
+    }
+    respondToCommand(command, true, selfCreated)
+    unfilteredCommandParsed = true
+    goto commandParsed
+  elseif command.code == "cc_continue.1" or command.code == "cc_continue.2" then
+    -- Check if we can modify the playerInputDisable (AKA total control is active)
+    local continueTime = min(60, 30 + persistData.combo.level)
+    local continueSuccess = btcVehicle.modifyPlayerInputDisable(continueTime)
+    
+    if continueSuccess then
+      if command.code == "cc_continue.1" then
+        -- Enable the second continue event
+        persistData.respondQueue['cc_effects_e.continue.2'] = {
+          idType = 0,
+          code = "cc_continue.2",
+          type = 1,
+          status = 0x80,
+        }
+        -- Disable the first continue event
+        persistData.respondQueue['cc_effects_d.continue.1'] = {
+          idType = 0,
+          code = "cc_continue.1",
+          type = 1,
+          status = 0x81,
+        }
+      else
+        -- Disable the second continue event
+        persistData.respondQueue['cc_effects_d.continue.2'] = {
+          idType = 0,
+          code = "cc_continue.2",
+          type = 1,
+          status = 0x81,
+        }
+      end
+    end
+
+    respondToCommand(command, continueSuccess, selfCreated)
+    unfilteredCommandParsed = continueSuccess
     goto commandParsed
   -- Vehicle Effects
   elseif command.code == 'shiftgear' or command.code == 'gearshift' then
@@ -320,8 +466,10 @@ local function parseNewCommand (line)
   persistData.respondQueue[persistData.lastReceivedId] = failResponse
 end
 
-local function reduceComboCount ()
-  persistData.combo.current = max(0, persistData.combo.current - settings.combo.droppingCommandsPer)
+local function modifyComboCount (direction, amount)
+  direction = direction or -1
+  amount = amount or settings.combo.droppingCommandsPer
+  persistData.combo.current = max(0, persistData.combo.current + (amount * direction))
   persistData.combo.level = max(0, floor(persistData.combo.current / settings.combo.commandsPerLevel))
 end
 
@@ -406,7 +554,7 @@ local function handleCombo (dt)
       persistData.combo.timeToReset = persistData.combo.timeToReset - dt
       if persistData.combo.timeToReset <= 0 then
         persistData.combo.timeToReset = settings.combo.droppingTime
-        reduceComboCount()
+        modifyComboCount()
         persistData.combo.dropping = true
       end
       guihooks.trigger('BTCUpdateCombo', persistData)
@@ -452,7 +600,7 @@ end
 ---------------------------
 
 local function shiftGear ()
-	be:getPlayerVehicle(0):queueLuaCommand([[
+	getPlayerVehicle(0):queueLuaCommand([[
     local chance = random(0, 10)
     if chance > 8 then
       controller.mainController.shiftToGearIndex(-1)
@@ -789,12 +937,8 @@ local function connectToServer()
           --  status = 131,
           --  code = 'random_tune',
           --}
-          persistData.respondQueue['disable_crowd_control'] = {
-            id = 0,
-            type = 1,
-            status = 131,
-            code = 'cc_effect',
-          }
+          -- Disable all crowd effects
+          toggleCrowdEffects(false)
           local ok, err = client:send(json.encode({ message = 'ok' })..'\0')
         end
         
@@ -942,8 +1086,8 @@ local function resetData ()
   isGameControlled = false
   triggerSoundId = nil
   
-  if be:getPlayerVehicle(0) then
-    be:getPlayerVehicle(0):queueLuaCommand("electrics.horn(false)")
+  if getPlayerVehicle(0) then
+    getPlayerVehicle(0):queueLuaCommand("electrics.horn(false)")
   end
 end
 
@@ -955,10 +1099,12 @@ local function onExtensionLoaded ()
     connectToServer()
   end
 
+  -- Do a bunch of checks to see if the UI is loaded
   checkForUI()
   checkGameControl()
   pingUI()
 
+  -- Get extra extensions
   if not btcVehicle then btcVehicle = require("freeroam/btcVehicleCommands") end
   if not btcUi then btcUi = require("freeroam/btcUiCommands") end
   if not btcFun then btcFun = require("freeroam/btcFunCommands") end
@@ -971,14 +1117,15 @@ local function onExtensionLoaded ()
   btcCamera.setSettings(settings)
   btcEnvironment.setSettings(settings)
   
-  if be:getPlayerVehicle(0) then
-    sendDebugData()
-    be:getPlayerVehicle(0):queueLuaCommand("electrics.horn(false)")
+  if getPlayerVehicle(0) then
+    --sendDebugData()
+    getPlayerVehicle(0):queueLuaCommand("electrics.horn(false)")
   end
   
+  -- If it's freeroam, we won't get missionStart events
   if core_gamestate.state and core_gamestate.state.state == "freeroam" then
     log('I', logTag, 'Post mission start, state is '..core_gamestate.state.state)
-    triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Special>Bus Stop Bell')
+    triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Missions>Bus_Stop_Bell')
     gameLoading = false
   end
 
@@ -991,43 +1138,19 @@ local function onExtensionUnloaded ()
   resetData()
 end
 
--- Check for new commands 8 times a second
-local tockFrequency = 0.02
-local tockCycle = 'server'
-local tickPassed = 0
 local function onUpdate (dt, dtSim, dtReal)
-  --p:start()
-  tickPassed = tickPassed + dt
-  --[[
-  if connectionStatus == 'connected' and client and tickPassed >= tockFrequency then
-    if tockCycle == 'server' then
-      handleServerConnection()
-      tockCycle = 'parser'
-    elseif tockCycle == 'parser' then
-      local i
-      for i = 1, #parseQueue do
-        addNewCommand(parseQueue[i])
-      end 
-      parseQueue = {}
-      tockCycle = 'server'
-    end
-    --p:add("Server connection")
-  end
-  ]]
+  
   if connectionStatus == 'connected' and client then
-    --timeprobe(true)
-    gcprobe(false, true)
     handleServerConnection()
-    --timecheck = timeprobe(true)
-    if timecheck and timecheck > 1 then
+    timecheck = timeprobe(true)
+    if timecheck and timecheck > 1 and settings.debug then
       print(timecheck)
     end
+
     if #parseQueue > 0 then
       for i = 1, #parseQueue do
         addNewCommand(parseQueue[i], false)
       end
-      gcprobe(false, false)
-      --timeprobe(false)
     end
     parseQueue = {}
   end
@@ -1084,13 +1207,46 @@ local function onUpdate (dt, dtSim, dtReal)
     btcEnvironment.handleTick(dtSim)
 
     -- Parse any currently active effects
-    if persistData.faultyGears.count > 0 then
-      handleFaultyGears(dtSim)
+    -- Parse total control mode
+    local previousState = persistData.totalControl.state
+    if persistData.totalControl.state ~= "off" and persistData.totalControl.state ~= "active" then
+      local totalControlState = persistData.totalControl.state
+      if totalControlState == "countdown" then
+        persistData.totalControl.countdown = persistData.totalControl.countdown - dtSim
+
+        if persistData.totalControl.countdown <= 0 then
+          persistData.totalControl.state = "transition_in"
+          persistData.totalControl.countdown = 1
+        end
+      elseif totalControlState == "transition_out" then
+        persistData.totalControl.countdown = persistData.totalControl.countdown - dtSim
+
+        if persistData.totalControl.countdown <= 0 then
+          persistData.totalControl.state = "off"
+          persistData.totalControl.countdown = 0
+          toggleCrowdEffects(false)
+        end
+      elseif totalControlState == "transition_in" then
+        persistData.totalControl.countdown = persistData.totalControl.countdown - dtSim
+
+        if persistData.totalControl.countdown <= 0 then
+          persistData.totalControl.state = "active"
+          persistData.totalControl.countdown = 0
+          startCrowdEffects()
+        end
+      end
+      if previousState ~= persistData.totalControl.state then
+        guihooks.trigger('BTCEffect-ccSwitch', {
+          oldState = previousState,
+          newState = persistData.totalControl.state,
+        })
+      end
+      guihooks.trigger('BTCEffect-cc', persistData.totalControl)
     end
     --p:add("Update End")
     --[[
-    if persistData.vehicleCanBeModified.active and be:getPlayerVehicle(0) then
-      local playerPos = be:getPlayerVehicle(0) and be:getPlayerVehicle(0):getPosition() or vec3()
+    if persistData.vehicleCanBeModified.active and getPlayerVehicle(0) then
+      local playerPos = getPlayerVehicle(0) and getPlayerVehicle(0):getPosition() or vec3()
       local dist = playerPos:distance(persistData.vehicleCanBeModified.origSpawnLoc)
 
       if dist > 50 then
@@ -1129,14 +1285,12 @@ local function onUpdate (dt, dtSim, dtReal)
     guihooks.trigger('BTCFrameUpdate', dtSim)
   end
   
-  tickPassed = tickPassed % tockFrequency
-  --p:finish(dtSim > 0, dtReal)
 end
 
 local function onMissionChanged (state, mission)
   if mission and state == "started" then
     log('I', logTag, 'Loading completed, state is '..state)
-    triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Special>Bus Stop Bell')
+    triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Missions>Bus_Stop_Bell')
     gameLoading = false
 
     if not btcVehicle then btcVehicle = require("freeroam/btcVehicleCommands") end
@@ -1146,26 +1300,6 @@ local function onMissionChanged (state, mission)
     if not btcEnvironment then btcEnvironment = require("freeroam/btcEnvironmentCommands") end
 
     checkForUI()
-
-    --[[ if be:getPlayerVehicle(0) then
-      persistData.vehicleCanBeModified = {
-        active = true,
-        distanceTravelled = 0,
-        origSpawnLoc = be:getPlayerVehicle(0):getPosition(),
-      }
-      persistData.respondQueue['disable_random_part'] = {
-        id = 0,
-        type = 1,
-        status = 128,
-        code = 'random_part',
-      }
-      persistData.respondQueue['disable_random_tune'] = {
-        id = 0,
-        type = 1,
-        status = 128,
-        code = 'random_tune',
-      }
-    end ]]
   elseif mission and state ~= "started" then
     log('I', logTag, 'Mission changing, '..state)
     gameLoading = true
@@ -1175,7 +1309,7 @@ end
 local function onMissionStart (path)
   if core_gamestate.state and core_gamestate.state.state == "freeroam" then
     log('I', logTag, 'Post mission start, state is '..core_gamestate.state.state)
-    triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Special>Bus Stop Bell')
+    triggerSoundId = triggerSoundId or Engine.Audio.createSource('AudioGui', 'event:>UI>Missions>Bus_Stop_Bell')
     gameLoading = false
 
     if not btcVehicle then btcVehicle = require("freeroam/btcVehicleCommands") end
@@ -1185,50 +1319,12 @@ local function onMissionStart (path)
     if not btcEnvironment then btcEnvironment = require("freeroam/btcEnvironmentCommands") end
 
     checkForUI()
-
-    --[[ if be:getPlayerVehicle(0) then
-      persistData.vehicleCanBeModified = {
-        active = true,
-        distanceTravelled = 0,
-        origSpawnLoc = be:getPlayerVehicle(0):getPosition(),
-      }
-      persistData.respondQueue['disable_random_part'] = {
-        id = 0,
-        type = 1,
-        status = 128,
-        code = 'random_part',
-      }
-      persistData.respondQueue['disable_random_tune'] = {
-        id = 0,
-        type = 1,
-        status = 128,
-        code = 'random_tune',
-      }
-    end ]]
   end
 end
 
 local function onMissionEnd (path)
   log('I', logTag, 'Mission ended')
   gameLoading = true
-
-  persistData.vehicleCanBeModified = {
-    active = true,
-    distanceTravelled = 0,
-    origSpawnLoc = be:getPlayerVehicle(0):getPosition(),
-  }
-  persistData.respondQueue['disable_random_part'] = {
-    id = 0,
-    type = 1,
-    status = 128,
-    code = 'random_part',
-  }
-  persistData.respondQueue['disable_random_tune'] = {
-    id = 0,
-    type = 1,
-    status = 128,
-    code = 'random_tune',
-  }
 end
 
 local function onVehicleSwitched (old, new)
@@ -1239,19 +1335,6 @@ local function onVehicleSwitched (old, new)
       origSpawnLoc = be:getObjectByID(new):getPosition(),
     }
   end
-  
-  persistData.respondQueue['disable_random_part'] = {
-    id = 0,
-    type = 1,
-    status = 128,
-    code = 'random_part',
-  }
-  persistData.respondQueue['disable_random_tune'] = {
-    id = 0,
-    type = 1,
-    status = 128,
-    code = 'random_tune',
-  }
 end
 
 local function onVehicleResetted (vID)
@@ -1260,19 +1343,6 @@ local function onVehicleResetted (vID)
     distanceTravelled = 0,
     origSpawnLoc = be:getObjectByID(vID):getPosition(),
   }
-  
-  --[[ persistData.respondQueue['disable_random_part'] = {
-    id = 0,
-    type = 1,
-    status = 128,
-    code = 'random_part',
-  }
-  persistData.respondQueue['disable_random_tune'] = {
-    id = 0,
-    type = 1,
-    status = 128,
-    code = 'random_tune',
-  } ]]
 end
 
 local function onSerialize()
@@ -1307,7 +1377,7 @@ local function onDeserialized(data)
   uiPingWaitingTimer = data.uiPingWaitingTimer
   uiPresent = data.uiPresent
   isGameControlled = data.isGameControlled
-  triggerSoundId = data.triggerSoundId
+  triggerSoundId = data.triggerSoundId or nil
 
   --dump(data)
   onExtensionLoaded()
@@ -1327,23 +1397,7 @@ M.onExtensionLoaded         = onExtensionLoaded
 M.onUpdate                  = onUpdate
 M.onClientPostStartMission  = onMissionStart
 M.onClientEndMission        = onMissionEnd
-M.onMissionLoaded           = onMission
 M.onAnyMissionChanged       = onMissionChanged
-
-local function onScenarioLoaded (scenario)
-  log('I', logTag, "Scenario Loaded")
-  --dump(scenario)
-end
-M.onScenarioLoaded = onScenarioLoaded
-local function onScenarioChange (scenario)
-  log('I', logTag, "Scenario Changed")
-  --dump(scenario)
-end
-M.onScenarioChange = onScenarioChange
-local function onRaceInit ()
-  log('I', logTag, "Race started")
-end
-M.onRaceInit = onRaceInit
 
 M.onVehicleSwitched         = onVehicleSwitched
 M.onVehicleResetted         = onVehicleResetted
@@ -1356,8 +1410,11 @@ M.checkServerStatus     = checkServerStatus
 M.saveSettingsFile      = saveSettingsFile
 M.loadSettingsFile      = loadSettingsFile
 
+-- Used by UI or other modules
 M.pongUI                = pongUI
 M.addRandomCommand      = addRandomCommand
+M.modifyComboCount      = modifyComboCount
+M.stopCrowdEffects      = stopCrowdEffects
 
 return M
 
