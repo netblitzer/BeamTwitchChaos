@@ -18,7 +18,7 @@ public class BeamNG : SimpleTCPPack {
 
     public BeamNG (UserRecord player, Func<CrowdControlBlock, bool> responseHandler, Action<object> statusUpdateHandler) : base(player, responseHandler, statusUpdateHandler) { }
 
-    public override Game Game { get; } = new("BeamNG.Drive", "BeamNG", "PC", ConnectorType.SimpleTCPServerConnector) { Hidden = Game.HiddenState.EarlyAccess};
+    public override Game Game { get; } = new("BeamNG.Drive", "BeamNG", "PC", ConnectorType.SimpleTCPServerConnector) { Hidden = Game.HiddenState.EarlyAccess };
 
     public static ParameterDef GravityParameters { get; } = new ParameterDef("Gravity", "gravity",
         new Parameter("Pluto", "grav_pluto"),
@@ -52,6 +52,8 @@ public class BeamNG : SimpleTCPPack {
         new("Squish the Screen", "view_squish") { Price = 40, Description = "We can see too much, can you do something about that?", Category = UiEffects },
         // new("Shake the Screen", "view_shake") { Price = 80, Description = "Add some drama", Category = new EffectGrouping("UI") },
         new("Clear the Screen", "uireset") { Price = 15, Description = "Can we see again?", Category = UiEffects },
+        new("Call in Clippy", "clippy") { Price = 150, Description = "I think the streamer might need some help", Category = UiEffects },
+        new("Windows Error", "windows_error") { Price = 750, Description = "Windows is a perfectly stable operating system", Category = UiEffects },
 
         new("Pop a Tire", "pop") { Price = 150, Description = "Make it a bit harder to drive", Category = VehicleEffects },
         new("Start a Fire", "fire") { Price = 400, Description = "Everyone knows Twitch likes a hot stream", Category = VehicleEffects },
@@ -65,7 +67,8 @@ public class BeamNG : SimpleTCPPack {
         //new("Randomize the Tune", "random_tune") { Price = 200, Description = "I know how to tune, trust me", Category = VehicleEffects },
         //new("Randomize the Parts", "random_part") { Price = 1000, Description = "Let's order some cool new parts", Category = VehicleEffects },
         //new("Damage a Part", "random_damage") { Price = 50, Description = "Give something a break", Category = VehicleEffects },
-        //new("Repair the Car", "repair") { Price = 50, Description = "Nothing a bit of percussive maintenance can't fix", Category = VehicleEffects },
+        new("Repair the Car", "repair") { Price = 25, Description = "Nothing a bit of percussive maintenance can't fix", Category = VehicleEffects },
+        new("Reset the Car", "reset") { Price = 50, Description = "Let's just pick up where we were", Category = VehicleEffects },
         new("Turn on the Forcefield", "forcefield") { Price = 75, Description = "Push everything away", Category = VehicleEffects },
         new("Turn on the Negative Forcefield", "attractfield") { Price = 250, Description = "Pull everything in", Category = VehicleEffects },
         new("Turn Around (Fast)", "spin") { Price = 200, Description = "I think we're going the wrong way", Category = VehicleEffects },
@@ -113,6 +116,7 @@ public class BeamNG : SimpleTCPPack {
         new("Randomize the Day/Night Cycle", "timescale") { Price = 75, Description = "What sort of universe is this?", Category = EnvironmentEffects },
         new("Move Time Forward", "timeforward") { Price = 15, Description = "Some want the future", Category = EnvironmentEffects },
         new("Move Time Backward", "timebackward") { Price = 15, Description = "Some want the past", Category = EnvironmentEffects },
+        new("Fix the World", "fix_env") { Price = 25, Description = "Let's get this back to normal, shall we?", Category = EnvironmentEffects },
 
         
         //new("Set AI to Random", "airandom"),
@@ -130,9 +134,9 @@ public class BeamNG : SimpleTCPPack {
         new("Fireworks", "fireworks") { Price = 100, Description = "Celebrate whatever you want!", Category = FunEffects },
 
         //new("Crowd Control", "cc_effect", ItemKind.Folder
-        new("Take Complete Control", "cc_activate") { Price = 500, Description = "Take complete control", SessionCooldown = SITimeSpan.FromMinutes(5), Category = CcEffects },
-        new("Stay in Control", "cc_continue.1") { Group = "cc_effect", Price = 125, Description = "Stay in control for even longer", Category = CcEffects },
-        new("Stay in Control", "cc_continue.2") { Group = "cc_effect", Price = 250, Description = "Stay in control for even longer", Category = CcEffects },
+        new("Take Complete Control", "cc_activate") { Price = 1000, Description = "Take complete control", SessionCooldown = SITimeSpan.FromMinutes(5), Category = CcEffects },
+        new("Stay in Control", "cc_continue.1") { Group = "cc_effect", Price = 200, Description = "Stay in control for even longer", Category = CcEffects },
+        new("Stay in Control", "cc_continue.2") { Group = "cc_effect", Price = 500, Description = "Stay in control for even longer", Category = CcEffects },
         new("Throttle (Off)", "cc_throttle.0") { Group = "cc_effect", Price = 2, Description = "Disengage the throttle", Category = CcEffects },
         new("Throttle (50%)", "cc_throttle.1") { Group = "cc_effect", Price = 2, Description = "Set throttle to 50%", Category = CcEffects },
         new("Throttle (100%)", "cc_throttle.2") { Group = "cc_effect", Price = 2, Description = "Set throttle to 100%", Category = CcEffects},

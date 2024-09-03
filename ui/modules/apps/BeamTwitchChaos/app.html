@@ -7,10 +7,14 @@
 
   <link href="/ui/modules/apps/BeamTwitchChaos/fonts/W95FA.otf" rel="preload" as="font" type="font/otf" crossorigin >
   <link href="/ui/modules/apps/BeamTwitchChaos/fonts/w95fa.woff" rel="preload" as="font" type="font/woff" crossorigin >
-  <link href="/ui/modules/apps/BeamTwitchChaos/main.css" rel="stylesheet">
+  <link href="/ui/modules/apps/beamTwitchChaos/main.css" rel="stylesheet">
 
-  <div class="btc-hidden">
+  <div id="font-loader" class="btc-hidden">
     <div id="windows95font">loader</div>
+  </div>
+  <div id="image-loader">
+    <img id="clippy" src="/ui/modules/apps/BeamTwitchChaos/images/clippy.png" />
+    <img id="clippy_empty" src="/ui/modules/apps/BeamTwitchChaos/images/clippy_empty.png" />
   </div>
 
   <div class="fullscreen-canvas-container">
@@ -150,15 +154,6 @@
         </div>
         <button>Buy DinoGAS&copy; BlackOILPURE&trade;</button>
       </div>
-      <div class="btc-ad-14" data-set-width="255" data-set-height="299">
-        <div class="btc-flex flex-column">
-          <p>It looks like you're trying to stream? Do you need some help?</p>
-        </div>
-        <div class="btc-flex flex-row">
-          <button>Yes</button>
-          <button>No</button>
-        </div>
-      </div>
       <svg class="btc-dvd-logo" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 210 107">
         <path
           d="M118.895,20.346c0,0-13.743,16.922-13.04,18.001c0.975-1.079-4.934-18.186-4.934-18.186s-1.233-3.597-5.102-15.387H81.81H47.812H22.175l-2.56,11.068h19.299h4.579c12.415,0,19.995,5.132,17.878,14.225c-2.287,9.901-13.123,14.128-24.665,14.128H32.39l5.552-24.208H18.647l-8.192,35.368h27.398c20.612,0,40.166-11.067,43.692-25.288c0.617-2.614,0.53-9.185-1.054-13.053c0-0.093-0.091-0.271-0.178-0.537c-0.087-0.093-0.178-0.722,0.178-0.814c0.172-0.092,0.525,0.271,0.525,0.358c0,0,0.179,0.456,0.351,0.813l17.44,50.315l44.404-51.216l18.761-0.092h4.579c12.424,0,20.09,5.132,17.969,14.225c-2.29,9.901-13.205,14.128-24.75,14.128h-4.405L161,19.987h-19.287l-8.198,35.368h27.398c20.611,0,40.343-11.067,43.604-25.288c3.347-14.225-11.101-25.293-31.89-25.293h-18.143h-22.727C120.923,17.823,118.895,20.346,118.895,20.346L118.895,20.346z" />
@@ -273,11 +268,11 @@
   </div>
   <div id="btc-main-menu" data-loc="main" class="btc-menu btc-open" style="display: none;">
     <div class="btc-button-container">
-      <!-- <h1 class="btc-title">
-                <span class="t1">Beam</span>
-                <span class="t2"><-></span>
-                <span class="t3">Twitch</span>
-            </h1> -->
+      <h1 class="btc-title">
+        <span class="t1">Beam</span>
+        <span class="t2"><-></span>
+        <span class="t3">Twitch</span>
+      </h1>
       <button data-loc="settings" class="btc-button btc-menu-button btc-settings-button">
         Settings
         <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="92" height="92">

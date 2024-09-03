@@ -80,6 +80,8 @@ local function parseCommand (commandIn, currentLevel, commandId, params)
     return commands.alterGravity(currentLevel, params)
   elseif commandIn == 'simspeed' then
     return commands.alterSimspeed(currentLevel, params)
+  elseif commandIn == 'fix_env' then
+    return commands.fixEnvironment()
     
   end
 
@@ -119,9 +121,32 @@ end
 local function alterTime (level, dir)
   local timeObj = core_environment.getTimeOfDay()
   local timeAdd = math.random(250, 500) / 1000 * dir
-  dump(timeAdd)
   timeObj.time = timeObj.time + timeAdd
   core_environment.setTimeOfDay(timeObj)
+  return true
+end
+
+local function fixEnvironment ()
+  local timeObj = core_environment.getTimeOfDay()
+  timeObj.time = math.random(850, 1000) / 1000
+  timeObj.dayScale = 1
+  timeObj.nightScale = 2
+  timeObj.play = false
+  core_environment.setTimeOfDay(timeObj)
+  
+  persistData.gravity = {
+    active = false,
+    lifeLeft = 0,
+    amount = -9.81,
+  }
+  core_environment.setGravity(-9.81)
+
+  persistData.fog = {
+    active = true,
+    lifeLeft = 0,
+    amount = 0,
+  }
+  core_environment.setFogDensity(0)
   return true
 end
 
@@ -129,6 +154,7 @@ commands.setDaytime     = setDaytime
 commands.setNighttime   = setNighttime
 commands.setRandomtime  = setRandomtime
 commands.alterTime      = alterTime
+commands.fixEnvironment = fixEnvironment
 
 -------------------------
 --\/ ADDER FUNCTIONS \/--

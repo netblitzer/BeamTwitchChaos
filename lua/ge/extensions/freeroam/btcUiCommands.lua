@@ -3,6 +3,10 @@ local logTag = "BeamTwitchChaos-ui"
 
 M.ready = false
 
+local random = math.random
+local min, max = math.min, math.max
+local floor, ceil = math.floor, math.ceil
+
 local commands = {}
 
 local settings = {
@@ -27,6 +31,7 @@ local persistData = {
     tunnelLife = 0,
     shakeLife = 0,
   },
+  clippy = {}
 }
 
 --------------------------
@@ -49,6 +54,8 @@ local function parseCommand (commandIn, currentLevel, commandId, commandRaw)
     return commands.addDvd(commandId, currentLevel, tonumber(commandRaw.quantity) or 1)
   elseif commandIn == 'ad' then
     return commands.addAd(commandId, currentLevel, tonumber(commandRaw.quantity) or 1)
+  elseif commandIn == 'clippy' then
+    return commands.addClippy(commandId, currentLevel)
   elseif commandIn == 'uireset' then
     return commands.clearScreen()
   elseif command == 'view' then
@@ -93,7 +100,7 @@ commands.clearScreen = clearScreen
 local function addDvd (idIn, level, count)
   count = count or 1
   persistData.dvd[idIn] = {
-    lifeLeft = 10 + (2 * math.min(10, level * settings.levelBonusCommandsModifier)),
+    lifeLeft = 10 + (2 * min(10, level * settings.levelBonusCommandsModifier)),
     id = idIn,
     level = level,
     count = count,
@@ -105,7 +112,7 @@ end
 local function addAd (idIn, level, count)
   count = count or 1
   persistData.ad[idIn] = {
-    lifeLeft = 10 + (2 * math.min(10, level * settings.levelBonusCommandsModifier)),
+    lifeLeft = 10 + (2 * min(10, level * settings.levelBonusCommandsModifier)),
     id = idIn,
     level = level,
     count = count,
@@ -116,17 +123,17 @@ end
 
 local function alterScreen (level, mode)
   if mode == 'narrow' then
-    persistData.screen.narrowLevel = math.min(10, math.max(persistData.screen.narrowLevel, level) + 1)
-    persistData.screen.narrowLife = math.max(persistData.screen.narrowLife, 15 + persistData.screen.narrowLevel)
+    persistData.screen.narrowLevel = min(10, max(persistData.screen.narrowLevel, level) + 1)
+    persistData.screen.narrowLife = max(persistData.screen.narrowLife, 15 + persistData.screen.narrowLevel)
   elseif mode == 'squish' then
-    persistData.screen.squishLevel = math.min(10, math.max(persistData.screen.squishLevel, level) + 1)
-    persistData.screen.squishLife = math.max(persistData.screen.squishLife, 15 + persistData.screen.squishLevel)
+    persistData.screen.squishLevel = min(10, max(persistData.screen.squishLevel, level) + 1)
+    persistData.screen.squishLife = max(persistData.screen.squishLife, 15 + persistData.screen.squishLevel)
   elseif mode == 'tunnel' then
-    persistData.screen.tunnelLevel = math.max(persistData.screen.tunnelLevel, level) + 1
-    persistData.screen.tunnelLife = math.max(persistData.screen.tunnelLife, 10 + persistData.screen.tunnelLevel)
+    persistData.screen.tunnelLevel = max(persistData.screen.tunnelLevel, level) + 1
+    persistData.screen.tunnelLife = max(persistData.screen.tunnelLife, 10 + persistData.screen.tunnelLevel)
   elseif mode == 'shake' then
-    persistData.screen.shakeLevel = math.max(persistData.screen.shakeLevel, level) + 1
-    persistData.screen.shakeLife = math.max(persistData.screen.shakeLife, 5 + persistData.screen.shakeLevel)
+    persistData.screen.shakeLevel = max(persistData.screen.shakeLevel, level) + 1
+    persistData.screen.shakeLife = max(persistData.screen.shakeLife, 5 + persistData.screen.shakeLevel)
   end
   persistData.screen.active = true
 
@@ -134,9 +141,48 @@ local function alterScreen (level, mode)
   return true
 end
 
+local function addClippy (idIn, level)
+  local player = getPlayerVehicle(0)
+  if not player then
+    return false
+  end
+  local vel = player:getVelocity():length()
+  local chance = random(0, 3)
+
+  local option = 'steering'
+
+  if chance == 0 then
+    option = 'steering'
+  elseif chance == 1 then
+    option = vel > 20 and 'brake' or 'throttle'
+  elseif chance == 3 then
+    option = 'clutch'
+  elseif chance == 4 then
+    option = 'parkingbrake'
+  end
+
+  local clippy = {
+    count = 1,
+    id = idIn,
+    clips = {
+      {
+        lifeLeft = min(10, (random(100, 220) / 10) - (level / 5)),
+        level = level,
+        type = option,
+      }
+    }
+  }
+
+  table.insert(persistData.clippy, clippy)
+  guihooks.trigger('BTCEffect-clippy', persistData.clippy)
+  dump(persistData.clippy)
+  return true
+end
+
 commands.addDvd       = addDvd
 commands.addAd        = addAd
 commands.alterScreen  = alterScreen
+commands.addClippy    = addClippy
 
 ---------------------------
 --\/ HANDLER FUNCTIONS \/--
@@ -148,11 +194,11 @@ local function handleDvd (dt)
       goto skip
     end
 
-    persistData.dvd[k].lifeLeft = math.max(0, v.lifeLeft - dt)
+    persistData.dvd[k].lifeLeft = max(0, v.lifeLeft - dt)
 
     if v.lifeLeft <= 0 then
       persistData.dvd[k] = nil
-      persistData.dvd.count = math.max(persistData.dvd.count - 1, 0)
+      persistData.dvd.count = max(persistData.dvd.count - 1, 0)
     end
 
     ::skip::
@@ -167,11 +213,11 @@ local function handleAd (dt)
       goto skip
     end
 
-    persistData.ad[k].lifeLeft = math.max(0, v.lifeLeft - dt)
+    persistData.ad[k].lifeLeft = max(0, v.lifeLeft - dt)
 
     if v.lifeLeft <= 0 then
       persistData.ad[k] = nil
-      persistData.ad.count = math.max(persistData.ad.count - 1, 0)
+      persistData.ad.count = max(persistData.ad.count - 1, 0)
     end
 
     ::skip::
@@ -181,10 +227,10 @@ local function handleAd (dt)
 end
 
 local function handleAlteredScreen (dt)
-  persistData.screen.narrowLife = math.max(0, persistData.screen.narrowLife - dt)
-  persistData.screen.squishLife = math.max(0, persistData.screen.squishLife - dt)
-  persistData.screen.tunnelLife = math.max(0, persistData.screen.tunnelLife - dt)
-  persistData.screen.shakeLife = math.max(0, persistData.screen.shakeLife - dt)
+  persistData.screen.narrowLife = max(0, persistData.screen.narrowLife - dt)
+  persistData.screen.squishLife = max(0, persistData.screen.squishLife - dt)
+  persistData.screen.tunnelLife = max(0, persistData.screen.tunnelLife - dt)
+  persistData.screen.shakeLife = max(0, persistData.screen.shakeLife - dt)
 
   local narrowInactive, squishInactive, tunnelInactive, shakeActive
   if persistData.screen.narrowLife == 0 then
@@ -211,9 +257,112 @@ local function handleAlteredScreen (dt)
   guihooks.trigger('BTCEffect-screen', persistData.screen)
 end
 
+local function handleClippy (dt)
+  for i = 1, #persistData.clippy do
+    local v = persistData.clippy[i] or nil
+    if v then
+      for j = 1, v.count do
+        if v.clips[j] then
+          v.clips[j].lifeLeft = v.clips[j].lifeLeft - dt
+
+          if v.clips[j].lifeLeft <= 0 then
+            -- Trigger sticky input
+            local amount = v.clips[j].type == 'steering' and (random(-100, 100) / 100) - 0.1 or random(50, 100) / 100
+            freeroam_btcVehicleCommands.addStickyInput(v.clips[j].type, v.clips[j].level, amount)
+
+            table.remove(v.clips, j)
+            v.count = max(0, v.count - 1)
+            j = max(1, j - 1)
+
+            if v.count == 0 then
+              table.remove(persistData.clippy, i)
+              i = max(1, i - 1)
+            end
+          end
+        end
+      end
+    end
+  end
+
+  guihooks.trigger('BTCEffect-clippy', persistData.clippy)
+end
+
 --------------------------
 --\/ APP/UI FUNCTIONS \/--
 --------------------------
+
+local function duplicateClippy (idIn, clipToCopy)
+  local player = getPlayerVehicle(0)
+  if not player then
+    return false
+  end
+  local vel = player:getVelocity():length()
+  local chance = random(0, 3)
+
+  local option = 'steering'
+
+  if chance == 0 then
+    option = 'steering'
+  elseif chance == 1 then
+    option = vel > 20 and 'brake' or 'throttle'
+  elseif chance == 3 then
+    option = 'clutch'
+  elseif chance == 4 then
+    option = 'parkingbrake'
+  end
+  for i = 1, #persistData.clippy do
+    local v = persistData.clippy[i] or nil
+    if v.id == idIn then
+      if v.clips[clipToCopy] then
+        v.clips[clipToCopy].lifeLeft = (random(100, 200) / 10)
+        v.clips[clipToCopy].level = v.clips[clipToCopy].level + 1
+        v.clips[clipToCopy].type = option
+        
+        chance = random(0, 3)
+        if chance == 0 then
+          option = 'steering'
+        elseif chance == 1 then
+          option = vel > 20 and 'brake' or 'throttle'
+        elseif chance == 3 then
+          option = 'clutch'
+        elseif chance == 4 then
+          option = 'parkingbrake'
+        end
+        table.insert(v.clips, {
+          lifeLeft = (random(100, 200) / 10),
+          level = v.clips[clipToCopy].level,
+          type = option
+        })
+        v.count = v.count + 1
+        return
+      else
+        return
+      end
+    end
+  end
+end
+
+local function triggerClippy (idIn, clipId)
+  for i = 1, #persistData.clippy do
+    local v = persistData.clippy[i] or nil
+    if v.id == idIn then
+      if v.clips[clipId] then
+        -- Trigger sticky input
+        local amount = v.clips[i].type == 'steering' and (random(-100, 100) / 100) - 0.1 or random(50, 100) / 100
+        freeroam_btcVehicleCommands.addStickyInput(v.clips[i].type, v.clips[i].level, amount)
+
+        table.remove(v.clips, clipId)
+        v.count = max(0, v.count - 1)
+
+        if v.count == 0 then
+          table.remove(persistData.clippy, i)
+        end
+
+        return
+      end
+    end
+  end
+end
 
 local function handleTick (dt)
   if persistData.dvd.count > 0 then
@@ -221,6 +370,9 @@ local function handleTick (dt)
   end
   if persistData.ad.count > 0 then
     handleAd(dt)
+  end
+  if #persistData.clippy > 0 then
+    handleClippy(dt)
   end
   if persistData.screen.active then
     handleAlteredScreen(dt)
@@ -252,14 +404,18 @@ local function onExtensionLoaded ()
 end
 
 --M.commands = commands
-M.setSettings = setSettings
-M.handleTick = handleTick
-M.parseCommand = parseCommand
+M.setSettings   = setSettings
+M.handleTick    = handleTick
+M.parseCommand  = parseCommand
 
 M.onSerialize         = onSerialize
 M.onDeserialized      = onDeserialized
 M.onExtensionLoaded   = onExtensionLoaded
 
 M.onVehicleSwitched = onVehicleSwitched
+
+-- Used by UI or other modules
+M.duplicateClippy   = duplicateClippy
+M.triggerClippy     = triggerClippy
 
 return M

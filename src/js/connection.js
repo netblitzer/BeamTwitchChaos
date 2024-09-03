@@ -181,6 +181,9 @@ const triggerCommandAlert = (commandData) => {
     case 'simscale':
       message = 'wants to see that in slow-motion'
       break;
+    case 'fix_env':
+      message = 'wants to go back to things being normal'
+      break;
     case 'camera_change':
       message = 'wants a better view'
       break;
@@ -240,6 +243,15 @@ const triggerCommandAlert = (commandData) => {
     case 'cc_continue.1':
     case 'cc_continue.2':
       message = 'won\'t let go of the wheel'
+      break;
+    case 'clippy':
+      message = 'thinks you need some help driving'
+      break;
+    case 'windows_error':
+      message = 'might have tweaked your bios'
+      break;
+    case 'repair':
+      message = 'thinks you might need some bondo'
       break;
     case 'test':
       message = 'triggered the test command somehow'

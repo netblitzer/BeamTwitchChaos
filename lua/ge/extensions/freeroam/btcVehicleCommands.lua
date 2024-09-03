@@ -202,6 +202,8 @@ local function parseCommand (commandIn, currentLevel, commandId)
     return commands.explode(currentLevel)
   elseif commandIn == 'ignition' then
     return commands.toggleIgnition(currentLevel)
+  elseif commandIn == 'repair' then
+    return commands.repairCar()
   end
   
   return nil
@@ -370,6 +372,16 @@ local function boost (level, power)
   return true
 end
 
+local function repairCar ()
+	local player = getPlayerVehicle(0)	
+  if not player then
+    return false
+  end
+
+  player:queueLuaCommand("obj:queueGameEngineLua('extensions.hook(\"trackVehReset\")') recovery.startRecovering() recovery.stopRecovering()")
+  return true
+end
+
 commands.popTire          = popTire
 commands.ignite           = ignite
 commands.explode          = explode
@@ -380,6 +392,7 @@ commands.randomPaint      = randomPaint
 commands.randomTune       = randomTune
 commands.randomBodyParts  = randomBodyParts
 commands.boost            = boost
+commands.repairCar        = repairCar
 
 
 local function handleHorn (prevHornState)
@@ -394,6 +407,10 @@ end
 --\/ ADDER FUNCTIONS \/--
 -------------------------
 
+--- Add a sticky input
+---@param type string Which kind of sticky input to add
+---@param level number BTC level
+---@param amount number 0 to 1 for most, -1 to 1 for steering
 local function addStickyInput (type, level, amount)
   if not getPlayerVehicle(0) then
     return false
@@ -413,6 +430,37 @@ local function addStickyInput (type, level, amount)
 
   persistData.inputs.active = true
   return true
+end
+
+local function addRandomStickyInput (level)
+  local player = getPlayerVehicle(0)
+  if not player then
+    return false
+  end
+  local vel = player:getVelocity()
+
+  local option = 'steering'
+  local amount = 1
+
+  local chance = random(0, 4)
+
+  if chance == 0 then
+    option = 'steering'
+    amount = (random(0, 1) - 0.5) * 2
+  elseif chance == 1 then
+    option = 'brake'
+    amount = random(5, 10) / 10
+  elseif chance == 2 then
+    option = 'throttle'
+    amount = random(5, 10) / 10
+  elseif chance == 3 then
+    option = 'clutch'
+    amount = random(5, 10) / 10
+  elseif chance == 4 then
+    option = 'parkingbrake'
+  end
+
+  addStickyInput(option, level, amount)
 end
 
 local function addForcedInput (input, level, option)
@@ -1178,15 +1226,19 @@ end
 M.setSettings               = setSettings
 M.handleTick                = handleTick
 M.parseCommand              = parseCommand
-M.togglePlayerInputDisable  = togglePlayerInputDisable
-M.modifyPlayerInputDisable  = modifyPlayerInputDisable
-M.calculateVehicleStats     = calculateVehicleStats
-M.vehicleData               = vehicleData
 
 M.onSerialize         = onSerialize
 M.onDeserialized      = onDeserialized
 M.onExtensionLoaded   = onExtensionLoaded
 
 M.onVehicleSwitched   = onVehicleSwitched
+
+-- Used by UI or other modules
+M.togglePlayerInputDisable  = togglePlayerInputDisable
+M.modifyPlayerInputDisable  = modifyPlayerInputDisable
+M.calculateVehicleStats     = calculateVehicleStats
+M.vehicleData               = vehicleData
+M.addRandomStickyInput      = addRandomStickyInput
+M.addStickyInput            = addStickyInput
 
 return M

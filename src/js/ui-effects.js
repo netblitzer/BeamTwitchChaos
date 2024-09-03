@@ -2,11 +2,16 @@
 let alertContainer;
 let effectContainer;
 let copyContainer;
+let comboCountContainer
+let comboCount
+let comboCountInner
+let levelContainer
+let blackoutContainer
 let canvasEle;
 let context;
 let drawCanvasEle = new OffscreenCanvas(256, 256);
 let drawContext = drawCanvasEle.getContext('2d');
-let displayImage;
+
 const windowSize = {
   w: 0,
   h: 0,
@@ -17,11 +22,6 @@ const visualBounds = {
   yMin: 0,
   yMax: 0,
 }
-let comboCountContainer
-let comboCount
-let comboCountInner
-let levelContainer
-let blackoutContainer
 
 const dvdSize = {
   w: 210,
@@ -50,6 +50,7 @@ const adDirections = [
   'ad-top',
   'ad-bottom',
 ]
+const imagePatterns = {}
 
 let shakePos = {
   x: 0,
@@ -60,9 +61,12 @@ let frameTime = 0.016
 let drawTime = 0
 let prevDrawTime = 0
 let drawCalls = {}
+
 let ccData = {
   status: 'off'
 }
+let clippys = {}
+let clippyButtons = {}
 
 const clearCanvas = () => {
   context.clearRect(0, 0, windowSize.w, windowSize.h)
@@ -76,6 +80,7 @@ const getScaledPosition = (gridPos, objSize) => {
   }
 }
 
+//#region DVD/Ad functions
 const addDvd = (dvdData) => {
   const drawSize = {
     w: (windowSize.w / 1920) * dvdSize.w,
@@ -250,6 +255,7 @@ const drawAd = (ele, dt) => {
     }
   }
 }
+//#endregion
 
 const shakeElement = (ele, shakeLevel) => {
   const currentShakeOffset = {
@@ -266,6 +272,23 @@ const shakeElement = (ele, shakeLevel) => {
   ele.style.top = `${shakeOffset.y}px`
 }
 
+const drawClassicWindow = (options) => {
+  const { x, y, width, height, bezel = 5 } = {...options}
+  drawContext.globalAlpha = 1
+  drawContext.fillStyle = '#AAA'
+  drawContext.fillRect(x, y, width, height)
+  drawContext.fillStyle = '#DDD'
+  drawContext.beginPath()
+  drawContext.moveTo(x, y)
+  drawContext.lineTo(x + width, y)
+  drawContext.lineTo(x, y + height)
+  drawContext.closePath()
+  drawContext.fill()
+  drawContext.fillStyle = '#CCC'
+  drawContext.fillRect(x + bezel, y + bezel, width - (bezel * 2), height - (bezel * 2))
+}
+
+//#region Total Control Functions
 const drawTVBorder = () => {
   drawContext.globalAlpha = 1
   // Top
@@ -371,22 +394,6 @@ const drawTVEffects = (time, staticAlpha = 0.05) => {
         windowSize.w / windowMod.x, windowSize.h / windowMod.y)
     }
   }
-}
-
-const drawClassicWindow = (options) => {
-  const { x, y, width, height, bezel = 5 } = {...options}
-  drawContext.globalAlpha = 1
-  drawContext.fillStyle = '#AAA'
-  drawContext.fillRect(x, y, width, height)
-  drawContext.fillStyle = '#DDD'
-  drawContext.beginPath()
-  drawContext.moveTo(x, y)
-  drawContext.lineTo(x + width, y)
-  drawContext.lineTo(x, y + height)
-  drawContext.closePath()
-  drawContext.fill()
-  drawContext.fillStyle = '#CCC'
-  drawContext.fillRect(x + bezel, y + bezel, width - (bezel * 2), height - (bezel * 2))
 }
 
 let ccEffectList = []
@@ -527,6 +534,88 @@ const drawCCStatus = () => {
     drawContext.fillText(`${ccEffectList[ccEffectList.length - i - 1].code}`, windowSize.w  + statusXPos + 175, windowSize.h / 2 + 100 + (i * 15))
   }
 }
+//#endregion
+
+const drawClippy = (clippyInfo) => {
+  const { position, lifeLeft, popInTime, type } = clippyInfo
+  const { x, y } = position
+
+  drawContext.globalAlpha = 1
+  drawContext.fillStyle = imagePatterns.clippyBlank
+  drawContext.translate(x, y)
+  drawContext.beginPath()
+  drawContext.rect(0, 0, 220, 250)
+  if (popInTime >= 0) {
+    drawContext.globalAlpha = 1 - (popInTime * 2)
+    drawContext.fillStyle = imagePatterns.clippyBlank
+  } else if (popInTime < -0.5) {
+    drawContext.fillStyle = imagePatterns.clippy
+  } else {
+    drawContext.fillStyle = imagePatterns.clippyBlank
+  }
+  drawContext.fill()
+  drawContext.closePath()
+
+  if (popInTime < -0.5) {
+    let message = 'do something'
+    switch (type) {
+      case 'steering':
+        message = 'change directions'
+        break
+      case 'throttle':
+        message = 'go faster'
+        break
+      case 'brake':
+        message = 'slow down'
+        break
+      case 'parkingbrake':
+        message = 'drift a bit'
+        break
+      case 'clutch':
+        message = 'make noise'
+        break
+    }
+    drawContext.font = "12pt Windows95, 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+    drawContext.fillStyle = '#000'
+    drawContext.textAlign = 'left'
+    drawContext.fillText('It looks like you\'re trying to drive', 10, 30)
+    drawContext.fillText('but having some trouble. I think', 10, 50)
+    drawContext.fillText(`you should ${message}.`, 10, 70)
+
+    drawContext.strokeStyle = '#000'
+    drawContext.beginPath()
+    drawContext.lineJoin = 'round'
+    drawContext.rect(10, 100, 90, 25)
+    drawContext.rect(110, 100, 90, 25)
+    drawContext.stroke()
+    drawContext.closePath()
+    drawContext.textAlign = 'center'
+    drawContext.fillText('Ignore', 55, 118)
+    drawContext.fillText(`Yes (${Math.ceil(lifeLeft)}sec)`, 155, 118)
+  }
+
+  drawContext.translate(-x, -y)
+}
+
+const checkClippyClicks = (e) => {
+  const clippyKeys = Object.keys(clippys)
+  clippyKeys.forEach((clippyKey) => {
+    if (clippys[clippyKey] && clippys[clippyKey].popInTime < -0.5) {
+      // Check if clicked
+      const { x, y } = clippys[clippyKey].position
+      if (e.y > y + 100 && e.y < y + 125) {
+        if (e.x > x + 10 && e.x < x + 100) {
+          bngApi.engineLua(`freeroam_btcUiCommands.duplicateClippy(${clippys[clippyKey].id}, ${clippys[clippyKey].copyId + 1})`)
+          return
+        } else if (e.x > x + 110 && e.x < x + 200) {
+          bngApi.engineLua(`freeroam_btcUiCommands.triggerClippy(${clippys[clippyKey].id}, ${clippys[clippyKey].copyId + 1})`)
+          clippys[clippyKey].popInTime = 10
+          return
+        }
+      }
+    }
+  })
+}
 
 let prevRenderTime = 0
 const updateUI = (time) => {
@@ -549,6 +638,7 @@ const updateUI = (time) => {
       child.children[0].style.textShadow = `0 0 ${Math.max(2, 2 + ((comboCountInner.dataset.effectCount / 25) || 0))}px black`
     })
 
+//#region Total Control Draw
     drawContext.font = "'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
     drawContext.textAlign = 'center'
     if (ccData.state !== 'off') {
@@ -618,7 +708,24 @@ const updateUI = (time) => {
       }
       context.drawImage(drawCanvasEle, 0, 0)
     }
+    drawContext.clearRect(0, 0, windowSize.w, windowSize.h)
+//#endregion
 
+    const clippyKeys = Object.keys(clippys)
+    clippyKeys.forEach((clippyKey) => {
+      if (clippys[clippyKey]) {
+        clippys[clippyKey].lifeLeft -= (dt * 10)
+        clippys[clippyKey].popInTime -= (dt * 10)
+        clippys[clippyKey].lastCheckTime += (dt * 10)
+
+        if (clippys[clippyKey].lifeLeft < -0.01 || clippys[clippyKey].lastCheckTime > 0.1) {
+          delete clippys[clippyKey]
+        } else if (clippys[clippyKey].popInTime < 0.5) {
+          drawClippy(clippys[clippyKey])
+        }
+      }
+    })
+    context.drawImage(drawCanvasEle, 0, 0)
     drawContext.clearRect(0, 0, windowSize.w, windowSize.h)
 
     const drawnElements = effectContainer.querySelectorAll('[data-effect-id]')
@@ -682,7 +789,7 @@ const updateUI = (time) => {
   requestAnimationFrame(updateUI)
 }
 
-export const initialize = (scope) => {
+const initialize = (scope) => {
   alertContainer = scope.rootElement.querySelector('.btc-alert-container')
   effectContainer = scope.rootElement.querySelector('.btc-effect-container')
   copyContainer = scope.rootElement.querySelector('.btc-copy-container')
@@ -694,8 +801,8 @@ export const initialize = (scope) => {
   context = canvasEle.getContext('2d')
   blackoutContainer = effectContainer.querySelector('.btc-effect-blackout-container')
 
-  scope.rootElement.querySelector('.fullscreen-canvas-container').addEventListener('click', () => {
-    console.log('clicked')
+  scope.rootElement.querySelector('.fullscreen-canvas-container').addEventListener('click', (e) => {
+    checkClippyClicks(e)
   })
 
   window.addEventListener('resize', () => {
@@ -732,6 +839,8 @@ export const initialize = (scope) => {
     canvasEle.height = windowSize.h
     drawCanvasEle.width = windowSize.w
     drawCanvasEle.height = windowSize.h
+
+    initializeContextImages(scope)
 
     clearCanvas()
   }, 50)
@@ -809,8 +918,42 @@ export const initialize = (scope) => {
       alertContainer.classList.remove('btc-classic-mode')
       clearCCEffectList()
     }
-    console.log(drawContext)
-    console.log(context)
+  })
+
+  scope.$on('BTCEffect-clippy', (e, data) => {
+    if (!data.isEmpty()) {
+      data.forEach((clippy) => {
+        for (let i = 0; i < clippy.count; i++) {
+          if (clippys[`${clippy.id}.${i}`] === undefined) {
+            clippys[`${clippy.id}.${i}`] = {
+              position: {
+                x: Math.random() * (windowSize.w / 2 - 110) + windowSize.w / 4,
+                y: Math.random() * (windowSize.h / 2 - 125) + windowSize.h / 4,
+              },
+              lifeLeft: clippy.clips[i].lifeLeft || 10,
+              popInTime: 0.25 + Math.random() * 0.5,
+              level: clippy.clips[i].level,
+              id: clippy.id,
+              copyId: i,
+              lastCheckTime: 0,
+              type: clippy.clips[i].type,
+            }
+          } else {
+            // When it gets ignored, the lifeLeft goes up so reset position
+            if (clippy.clips[i].lifeLeft > clippys[`${clippy.id}.${i}`].lifeLeft + 0.25) {
+              clippys[`${clippy.id}.${i}`].position = {
+                x: Math.random() * (windowSize.w / 2 - 110) + windowSize.w / 4,
+                y: Math.random() * (windowSize.h / 2 - 125) + windowSize.h / 4,
+              }
+              clippys[`${clippy.id}.${i}`].popInTime = 0.25 + Math.random() * 0.5
+              clippys[`${clippy.id}.${i}`].type = clippy.clips[i].type
+            }
+            clippys[`${clippy.id}.${i}`].lifeLeft = clippy.clips[i].lifeLeft
+            clippys[`${clippy.id}.${i}`].lastCheckTime = 0
+          }
+        }
+      })
+    }
   })
 
   scope.$on('BTCFrameUpdate', (e, data) => {
@@ -832,6 +975,18 @@ export const initialize = (scope) => {
   requestAnimationFrame(updateUI)
 }
 
+const initializeContextImages = (scope) => {
+  const imageLoader = scope.rootElement.querySelector('#image-loader')
+  const clippyImage = imageLoader.querySelector('#clippy')
+  const clippyImageBlank = imageLoader.querySelector('#clippy_empty')
+
+  imagePatterns.clippy = drawContext.createPattern(clippyImage, 'repeat')
+  imagePatterns.clippyBlank = drawContext.createPattern(clippyImageBlank, 'repeat')
+
+  imageLoader.classList.add('btc-hidden')
+}
+
 export {
+  initialize,
   addCCEffect
 }

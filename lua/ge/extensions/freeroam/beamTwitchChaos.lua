@@ -188,6 +188,12 @@ local function toggleCrowdEffects (shouldEnableCrowdEffects)
       status = shouldEnableCrowdEffects and 0x80 or 0x81,
     }
   end
+  --[[persistData.respondQueue['cc_effects_d.cc_effects'] = {
+    idType = 0x01,
+    ids = { "cc_effect", "_" },
+    type = 0x01,
+    status = shouldEnableCrowdEffects and 0x81 or 0x80,
+  }]]
   for i = 1, #inverseCrowdEffets do
     persistData.respondQueue['cc_effects_d'..i] = {
       idType = 0,
@@ -422,6 +428,11 @@ local function parseNewCommand (line)
   --if not json then json = require("core/jsonUpdated") end
   local newCommand = json.decode(stripped)
 
+  if newCommand.type == 253 then
+    -- Respond with game status
+    return
+  end
+
   newCommand.effectId = persistData.lastCommandId
   persistData.lastCommandId = persistData.lastCommandId + 1
   persistData.lastReceivedId = newCommand.id
@@ -446,6 +457,8 @@ local function parseNewCommand (line)
     local funReady = btcFun.ready
     local cameraReady = btcCamera.ready
     local environmentReady = btcEnvironment.ready
+
+    --dump({uiReady, vehicleReady, funReady, cameraReady, environmentReady})
 
     if uiReady and vehicleReady and funReady and cameraReady and environmentReady then
       addNewCommand(newCommand)
