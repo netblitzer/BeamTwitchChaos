@@ -209,7 +209,7 @@ local pools = {
       {
         model = 'metal_ramp',
         config = 'vehicles/metal_ramp/adjustable_metal_ramp.pc',
-        upDir = 'backward',
+        upDir = 'forward',
       },
     },
     upDirs = {},
@@ -720,18 +720,29 @@ local function handlePropBasic (dt, poolName, velOffset, posOffset)
         local playerPos = freeroam_btcVehicleCommands.vehicleData.massCenter or player:getPosition()
         local playerVel = player:getVelocity()
         local playerDirection = player:getDirectionVector()
+        local playerUp = player:getDirectionVectorUp()
+        local playerRight = playerDirection:cross(playerUp)
+        
+        local boundingBox = nextProp:getSpawnLocalAABB()
+        local center = boundingBox:getCenter()
+        dump(center)
 
         local nextPos = playerPos + (playerVel * velOffset) + vec3(0, 0, nextHeight) + (playerDirection * posOffset)
+        if poolName == 'ramp' then
+          nextPos = nextPos - center
+        else
+          nextPos = nextPos + center
+        end
         local nextRot = quat()
         local nextUpDir = pools[poolName].upDirs[nextProp:getId()]
         if nextUpDir == 'up' then
-          nextRot = quatFromDir(player:getDirectionVectorUp(), vec3(0, 0, 1))
+          nextRot = quatFromDir(playerUp, vec3(0, 0, 1))
         elseif nextUpDir == 'down' then 
-          nextRot = quatFromDir(player:getDirectionVectorUp(), vec3(0, 0, -1))
+          nextRot = quatFromDir(playerUp, vec3(0, 0, -1))
         elseif nextUpDir == 'forward' then
-          nextRot = quatFromDir(player:getDirectionVector(), vec3(0, 0, 1))
+          nextRot = quatFromDir(-playerDirection, playerUp)
         elseif nextUpDir == 'backward' then
-          nextRot = quatFromDir(player:getDirectionVector() * -1, vec3(0, 0, 1))
+          nextRot = quatFromDir(playerDirection, playerUp)
         elseif nextUpDir == 'random' then
           nextRot = quat(random(), random(), random(), random())
         end
@@ -764,7 +775,7 @@ local function handleFlock (dt)
     if k == 'anyActive' then goto skip end
 
     if v.active then
-      local playerPos = player:getPosition()
+      local playerPos = freeroam_btcVehicleCommands.vehicleData.massCenter or player:getPosition()
       for k2, v2 in pairs(v.props) do
         if k2 == 'count' then goto skip2 end
         
@@ -914,7 +925,7 @@ local function handleMeteors (dt)
 
     local rock = be:getObjectByID(v.propId)
     local rockVel = rock:getVelocity()
-    local boundingBox = rock:getSpawnWorldOOBB()
+    local boundingBox = rock:getSpawnLocalAABB()
     local halfExtents = boundingBox:getHalfExtents()
     local center = boundingBox:getCenter()
     local longestHalfExtent = max(max(halfExtents.x, halfExtents.y), halfExtents.z)
@@ -1056,9 +1067,9 @@ local function handleFireworks (dt)
 
     if distance < 15 and not persistData.fireworks.props[v] then
       local vehUp = veh:getDirectionVectorUp()
-      veh:queueLuaCommand('thrusters.applyVelocity('..tostring(vehUp * max(20, 10 + persistData.fireworks.level) * (random() + 1))..', 0.1)')
+      veh:queueLuaCommand('thrusters.applyVelocity('..tostring(vehUp * max(10, 5 + persistData.fireworks.level) * (random() + 1))..', 0.1)')
       veh:queueLuaCommand('fire.igniteVehicle()')
-      persistData.fireworks.props[v] = 0.1
+      persistData.fireworks.props[v] = 0.01
       persistData.fireworks.props.count = persistData.fireworks.props.count + 1
     end
   end

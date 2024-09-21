@@ -31,7 +31,8 @@ local persistData = {
     tunnelLife = 0,
     shakeLife = 0,
   },
-  clippy = {}
+  clippy = {},
+  winError = {},
 }
 
 --------------------------
@@ -56,6 +57,8 @@ local function parseCommand (commandIn, currentLevel, commandId, commandRaw)
     return commands.addAd(commandId, currentLevel, tonumber(commandRaw.quantity) or 1)
   elseif commandIn == 'clippy' then
     return commands.addClippy(commandId, currentLevel)
+  elseif commandIn == 'windows_error' then
+    return commands.addWinError(commandId, currentLevel)
   elseif commandIn == 'uireset' then
     return commands.clearScreen()
   elseif command == 'view' then
@@ -175,7 +178,26 @@ local function addClippy (idIn, level)
 
   table.insert(persistData.clippy, clippy)
   guihooks.trigger('BTCEffect-clippy', persistData.clippy)
-  dump(persistData.clippy)
+  return true
+end
+
+local function addWinError (idIn, level)
+  local player = getPlayerVehicle(0)
+  if not player then
+    return false
+  end
+
+  local startLife = min(25, (random(125, 175) / 10) + (level / 5))
+  local error = {
+    id = idIn,
+    lifeLeft = startLife,
+    startLife = startLife, 
+    level = level,
+    isCrashing = false,
+  }
+
+  table.insert(persistData.winError, error)
+  guihooks.trigger('BTCEffect-winError', persistData.winError)
   return true
 end
 
@@ -183,6 +205,7 @@ commands.addDvd       = addDvd
 commands.addAd        = addAd
 commands.alterScreen  = alterScreen
 commands.addClippy    = addClippy
+commands.addWinError  = addWinError
 
 ---------------------------
 --\/ HANDLER FUNCTIONS \/--
@@ -287,6 +310,29 @@ local function handleClippy (dt)
   guihooks.trigger('BTCEffect-clippy', persistData.clippy)
 end
 
+local function handleWinError (dt)
+  local v
+  for i = 1, #persistData.winError do
+    v = persistData.winError[i] or nil
+    if v then
+      v.lifeLeft = v.lifeLeft - dt
+
+      if not v.isCrashing then
+        if v.startLife - v.lifeLeft > 5 then
+          v.isCrashing = true
+        end
+      end
+
+      if v.lifeLeft <= 0 then
+        table.remove(persistData.winError, i)
+        i = max(1, i - 1)
+      end
+    end
+  end
+  
+  guihooks.trigger('BTCEffect-winError', persistData.winError)
+end
+
 --------------------------
 --\/ APP/UI FUNCTIONS \/--
 --------------------------
@@ -373,6 +419,9 @@ local function handleTick (dt)
   end
   if #persistData.clippy > 0 then
     handleClippy(dt)
+  end
+  if #persistData.winError > 0 then
+    handleWinError(dt)
   end
   if persistData.screen.active then
     handleAlteredScreen(dt)

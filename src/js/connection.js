@@ -253,6 +253,9 @@ const triggerCommandAlert = (commandData) => {
     case 'repair':
       message = 'thinks you might need some bondo'
       break;
+    case 'reset':
+      message = 'did some necromancy'
+      break;
     case 'test':
       message = 'triggered the test command somehow'
       break;

@@ -1,16 +1,18 @@
+let alertContainer
+let effectContainer
+let copyContainer
+let blackoutContainer
+let buttonContainer
 
-let alertContainer;
-let effectContainer;
-let copyContainer;
 let comboCountContainer
 let comboCount
 let comboCountInner
 let levelContainer
-let blackoutContainer
-let canvasEle;
-let context;
-let drawCanvasEle = new OffscreenCanvas(256, 256);
-let drawContext = drawCanvasEle.getContext('2d');
+
+let canvasEle
+let context
+let drawCanvasEle = new OffscreenCanvas(256, 256)
+let drawContext = drawCanvasEle.getContext('2d')
 
 const windowSize = {
   w: 0,
@@ -66,7 +68,7 @@ let ccData = {
   status: 'off'
 }
 let clippys = {}
-let clippyButtons = {}
+let winErrors = {}
 
 const clearCanvas = () => {
   context.clearRect(0, 0, windowSize.w, windowSize.h)
@@ -462,7 +464,7 @@ const addCCEffect = (commandData) => {
     user: commandData.viewer,
     code: codeParsed || commandData.code,
   })
-  console.log(ccEffectList)
+  //console.log(ccEffectList)
 }
 
 const drawCCStatus = () => {
@@ -536,6 +538,7 @@ const drawCCStatus = () => {
 }
 //#endregion
 
+//#region Clippy Functions
 const drawClippy = (clippyInfo) => {
   const { position, lifeLeft, popInTime, type } = clippyInfo
   const { x, y } = position
@@ -597,24 +600,123 @@ const drawClippy = (clippyInfo) => {
   drawContext.translate(-x, -y)
 }
 
-const checkClippyClicks = (e) => {
-  const clippyKeys = Object.keys(clippys)
-  clippyKeys.forEach((clippyKey) => {
-    if (clippys[clippyKey] && clippys[clippyKey].popInTime < -0.5) {
-      // Check if clicked
-      const { x, y } = clippys[clippyKey].position
-      if (e.y > y + 100 && e.y < y + 125) {
-        if (e.x > x + 10 && e.x < x + 100) {
-          bngApi.engineLua(`freeroam_btcUiCommands.duplicateClippy(${clippys[clippyKey].id}, ${clippys[clippyKey].copyId + 1})`)
-          return
-        } else if (e.x > x + 110 && e.x < x + 200) {
-          bngApi.engineLua(`freeroam_btcUiCommands.triggerClippy(${clippys[clippyKey].id}, ${clippys[clippyKey].copyId + 1})`)
-          clippys[clippyKey].popInTime = 10
-          return
-        }
+const addClippyButtons = (clippyInfo) => {
+  const { position, id, copyId } = clippyInfo
+  const { x, y } = position
+
+  const ignoreButton = document.createElement('button')
+  ignoreButton.id = `ignore-${id}-${copyId}`
+  ignoreButton.style.position = 'absolute'
+  ignoreButton.style.left = `${x + 10}px`
+  ignoreButton.style.top = `${y + 100}px`
+  ignoreButton.style.width = '90px'
+  ignoreButton.style.height = '25px'
+  ignoreButton.onclick = () => {
+    bngApi.engineLua(`freeroam_btcUiCommands.duplicateClippy(${id}, ${copyId + 1})`)
+    removeClippyButtons(`${id}-${copyId}`)
+  }
+
+  const agreeButton = document.createElement('button')
+  agreeButton.id = `agree-${id}-${copyId}`
+  agreeButton.style.position = 'absolute'
+  agreeButton.style.left = `${x + 110}px`
+  agreeButton.style.top = `${y + 100}px`
+  agreeButton.style.width = '90px'
+  agreeButton.style.height = '25px'
+  agreeButton.onclick = () => {
+    bngApi.engineLua(`freeroam_btcUiCommands.triggerClippy(${id}, ${copyId + 1})`)
+    clippys[`${id}.${copyId}`].popInTime = 10
+    removeClippyButtons(`${id}-${copyId}`)
+  }
+
+  buttonContainer.append(ignoreButton)
+  buttonContainer.append(agreeButton)
+}
+
+const removeClippyButtons = (clippyKey) => {
+  const ignoreButton = buttonContainer.querySelector(`button#ignore-${clippyKey}`)
+  const agreeButton = buttonContainer.querySelector(`button#agree-${clippyKey}`)
+
+  if (ignoreButton) 
+    ignoreButton.remove()
+
+  if (agreeButton)
+    agreeButton.remove()
+}
+//#endregion
+
+const errorWidth = 290
+const errorHeight = 110
+const drawWinError = (errorInfo, dt) => {
+  const { isCrashing, boxes, id, velocity, lifeLeft } = errorInfo
+
+
+  const nextPos = {
+    x: -1,
+    y: -1,
+  }
+  winErrors[id].boxes = boxes.filter((box) => {
+    const { position } = box
+    let lastCrashTime = box.crashTime
+    if (isCrashing)
+      box.crashTime += dt
+
+    if (box.crashTime > 5) {
+      return false
+    } else if (box.crashTime > 0.05 && lastCrashTime <= 0.05 && lifeLeft > 0) {
+      velocity.y += 15
+
+      nextPos.x =  position.x + (velocity.x * 0.5)
+      nextPos.y =  position.y + (velocity.y * 0.2)
+
+      if (nextPos.x < 0) {
+        nextPos.x = 0
+        velocity.x *= -1
+      } else if (nextPos.x > windowSize.w - errorWidth) {
+        nextPos.x = windowSize.w - errorWidth
+        velocity.x *= -1
+      }
+
+      if (nextPos.y > windowSize.h - errorHeight) {
+        nextPos.y = windowSize.h - errorHeight
+        velocity.y *= -1 * (0.75 + (Math.random() * 0.5))
       }
     }
+    drawClassicWindow({
+      x: position.x,
+      y: position.y,
+      width: errorWidth,
+      height: errorHeight,
+    })
+    drawContext.textAlign = 'left'
+    drawContext.font = "14pt Windows95, 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+    drawContext.globalAlpha = 1
+    drawContext.fillStyle = '#A00'
+    drawContext.fillRect(position.x + 5, position.y + 5, errorWidth - 10, 25)
+    drawContext.fillStyle = '#FFF'
+    drawContext.fillText('CRITICAL ERROR', position.x + 10, position.y + 25)
+    drawContext.fillStyle = '#000'
+    drawContext.font = "12pt Windows95, 'Noto Sans', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', sans-serif"
+    drawContext.fillText('ERROR: An error has occurred in Windows!', position.x + 10, position.y + 47)
+    drawContext.fillText('Your computer will restart now.', position.x + 10, position.y + 65)
+    drawClassicWindow({
+      x: position.x + 210,
+      y: position.y + 70,
+      width: 70,
+      height: 25,
+      bezel: 2,
+    })
+    drawContext.fillStyle = '#AAA'
+    drawContext.fillText('Yes', position.x + 232, position.y + 87)
+
+    return true
   })
+  if (nextPos.x !== -1 && nextPos.y !== -1) {
+    winErrors[id].boxes[boxes.length] = {
+      crashTime: 0,
+      position: nextPos,
+    }
+  }
 }
 
 let prevRenderTime = 0
@@ -712,16 +814,39 @@ const updateUI = (time) => {
 //#endregion
 
     const clippyKeys = Object.keys(clippys)
+    let lastPopInTime = 0
     clippyKeys.forEach((clippyKey) => {
       if (clippys[clippyKey]) {
         clippys[clippyKey].lifeLeft -= (dt * 10)
+        lastPopInTime = clippys[clippyKey].popInTime
         clippys[clippyKey].popInTime -= (dt * 10)
         clippys[clippyKey].lastCheckTime += (dt * 10)
 
         if (clippys[clippyKey].lifeLeft < -0.01 || clippys[clippyKey].lastCheckTime > 0.1) {
+          removeClippyButtons(`${clippyKey.replace('.', '-')}`)
           delete clippys[clippyKey]
         } else if (clippys[clippyKey].popInTime < 0.5) {
           drawClippy(clippys[clippyKey])
+
+          if (clippys[clippyKey].popInTime < -0.5 && lastPopInTime >= -0.5) {
+            addClippyButtons(clippys[clippyKey])
+          }
+        }
+      }
+    })
+    context.drawImage(drawCanvasEle, 0, 0)
+    drawContext.clearRect(0, 0, windowSize.w, windowSize.h)
+    
+    const errKeys = Object.keys(winErrors)
+    errKeys.forEach((errKey) => {
+      if (winErrors[errKey]) {
+        winErrors[errKey].lifeLeft -= (dt * 10)
+        winErrors[errKey].lastCheckTime += (dt * 10)
+        
+        drawWinError(winErrors[errKey], (dt * 10))
+
+        if (winErrors[errKey].boxes.length === 0 || winErrors.lifeLeft < -0.01) {
+          delete winErrors[errKey]
         }
       }
     })
@@ -800,10 +925,7 @@ const initialize = (scope) => {
   canvasEle = scope.rootElement.querySelector('.fullscreen-canvas')
   context = canvasEle.getContext('2d')
   blackoutContainer = effectContainer.querySelector('.btc-effect-blackout-container')
-
-  scope.rootElement.querySelector('.fullscreen-canvas-container').addEventListener('click', (e) => {
-    checkClippyClicks(e)
-  })
+  buttonContainer = scope.rootElement.querySelector('#btc-button-container')
 
   window.addEventListener('resize', () => {
     windowSize.w = effectContainer.clientWidth
@@ -925,6 +1047,7 @@ const initialize = (scope) => {
       data.forEach((clippy) => {
         for (let i = 0; i < clippy.count; i++) {
           if (clippys[`${clippy.id}.${i}`] === undefined) {
+            // Create a new clippy
             clippys[`${clippy.id}.${i}`] = {
               position: {
                 x: Math.random() * (windowSize.w / 2 - 110) + windowSize.w / 4,
@@ -935,7 +1058,7 @@ const initialize = (scope) => {
               level: clippy.clips[i].level,
               id: clippy.id,
               copyId: i,
-              lastCheckTime: 0,
+              lastCheckTime: -0.1, // Small buffer in case there's a delay
               type: clippy.clips[i].type,
             }
           } else {
@@ -947,13 +1070,46 @@ const initialize = (scope) => {
               }
               clippys[`${clippy.id}.${i}`].popInTime = 0.25 + Math.random() * 0.5
               clippys[`${clippy.id}.${i}`].type = clippy.clips[i].type
+              removeClippyButtons(`${clippy.id}-${i}`)
             }
             clippys[`${clippy.id}.${i}`].lifeLeft = clippy.clips[i].lifeLeft
-            clippys[`${clippy.id}.${i}`].lastCheckTime = 0
+            clippys[`${clippy.id}.${i}`].lastCheckTime = -0.1 // Small buffer in case there's a delay
           }
         }
       })
     }
+  })
+
+  scope.$on('BTCEffect-winError', (e, data) => {if (!data.isEmpty()) {
+    data.forEach((err) => {
+      if (winErrors[`${err.id}`] === undefined) {
+        // Create a new clippy
+        const position = {
+          x: Math.random() * (windowSize.w / 2 - 110) + windowSize.w / 4,
+          y: Math.random() * (windowSize.h / 2 - 125) + windowSize.h / 4,
+        }
+        winErrors[`${err.id}`] = {
+          lifeLeft: err.lifeLeft || 10,
+          isCrashing: err.isCrashing || false,
+          level: err.level,
+          id: err.id,
+          lastCheckTime: -0.1, // Small buffer in case there's a delay
+          velocity: {
+            x: (Math.random() * 2 - 1) * 50,
+            y: 0,
+          },
+          boxes: [{
+            crashTime: 0,
+            position,
+          }]
+        }
+      } else {
+        winErrors[`${err.id}`].lifeLeft = err.lifeLeft
+        winErrors[`${err.id}`].isCrashing = err.isCrashing
+        winErrors[`${err.id}`].lastCheckTime = -0.1 // Small buffer in case there's a delay
+      }
+    })
+  }
   })
 
   scope.$on('BTCFrameUpdate', (e, data) => {

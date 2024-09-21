@@ -27,8 +27,6 @@ local ccIp = '127.0.0.1'
 
 -- App stuff
 M.dependencies = {'scenario_scenarios', 'core_weather', 'core_environment'}
-extensions = require("extensions")
-extensions.load({"core_weather", "core_environment", 'core_camera', 'core_vehicle_manager', 'core_vehicle_colors'})
 local json = require("core/jsonUpdated")
 local btcVehicle = require("freeroam/btcVehicleCommands")
 local btcUi = require("freeroam/btcUiCommands")
@@ -179,29 +177,20 @@ end
 
 --- Toggles the crowd effect commands
 --- @param shouldEnableCrowdEffects bool Whether crowd effect commands should be enabled or not
-local function toggleCrowdEffects (shouldEnableCrowdEffects)
-  for i = 1, #crowdEffects do
-    persistData.respondQueue['cc_effects_e'..i] = {
-      idType = 0,
-      code = crowdEffects[i],
-      type = 1,
-      status = shouldEnableCrowdEffects and 0x80 or 0x81,
-    }
-  end
-  --[[persistData.respondQueue['cc_effects_d.cc_effects'] = {
+local function toggleCrowdEffects (shouldEnableCrowdEffects, firstLoad)
+  firstLoad = firstLoad or false
+  persistData.respondQueue['cc_effects.cc_effects'] = {
     idType = 0x01,
-    ids = { "cc_effect", "_" },
+    ids = { "cc_effect" },
+    type = 0x01,
+    status = shouldEnableCrowdEffects and 0x80 or 0x81,
+  }
+  persistData.respondQueue['cc_effects.inverse_cc_effects'] = {
+    idType = 0x01,
+    ids = { "inverse_cc_effect" },
     type = 0x01,
     status = shouldEnableCrowdEffects and 0x81 or 0x80,
-  }]]
-  for i = 1, #inverseCrowdEffets do
-    persistData.respondQueue['cc_effects_d'..i] = {
-      idType = 0,
-      code = inverseCrowdEffets[i],
-      type = 1,
-      status = shouldEnableCrowdEffects and 0x81 or 0x80,
-    }
-  end
+  }
   -- If we're disbaling crowd effects, make sure to disable the continue effects
   --  Also make sure to reenable the activate command
   if not shouldEnableCrowdEffects then
@@ -217,6 +206,8 @@ local function toggleCrowdEffects (shouldEnableCrowdEffects)
       type = 1,
       status = 0x81,
     }
+  end
+  if not firstLoad and not shouldEnableCrowdEffects then
     persistData.respondQueue['cc_effects_e.activate'] = {
       idType = 0,
       code = "cc_activate",
@@ -427,9 +418,32 @@ local function parseNewCommand (line)
   
   --if not json then json = require("core/jsonUpdated") end
   local newCommand = json.decode(stripped)
+  
+  local uiReady = btcUi.ready
+  local vehicleReady = btcVehicle.ready
+  local funReady = btcFun.ready
+  local cameraReady = btcCamera.ready
+  local environmentReady = btcEnvironment.ready
 
   if newCommand.type == 253 then
+    local statusReponse
     -- Respond with game status
+    if not playerVehicle or not isGameControlled or not uiPresent or
+      not uiReady or not vehicleReady or not funReady or not cameraReady or not environmentReady then
+        statusReponse = {
+          id = newCommand.id,
+          type = 253,
+          status = -4,
+        }
+      else
+        statusReponse = {
+          id = newCommand.id,
+          type = 253,
+          status = 1,
+        }
+    end
+    persistData.respondQueue[newCommand.id] = statusReponse
+
     return
   end
 
@@ -452,11 +466,6 @@ local function parseNewCommand (line)
     persistData.respondQueue[newCommand.id] = retryResponse
     return
   elseif not persistData.combo.ready[newCommand.effectId] and playerVehicle and isGameControlled and uiPresent then
-    local uiReady = btcUi.ready
-    local vehicleReady = btcVehicle.ready
-    local funReady = btcFun.ready
-    local cameraReady = btcCamera.ready
-    local environmentReady = btcEnvironment.ready
 
     --dump({uiReady, vehicleReady, funReady, cameraReady, environmentReady})
 
@@ -951,7 +960,7 @@ local function connectToServer()
           --  code = 'random_tune',
           --}
           -- Disable all crowd effects
-          toggleCrowdEffects(false)
+          toggleCrowdEffects(false, true)
           local ok, err = client:send(json.encode({ message = 'ok' })..'\0')
         end
         

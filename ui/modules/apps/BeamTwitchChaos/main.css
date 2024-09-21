@@ -60,7 +60,8 @@
   font-size: 12px;
 }
 .fullscreen-canvas-container,
-.fullscreen-canvas {
+.fullscreen-canvas,
+#btc-button-container {
   position: fixed;
   left: 0;
   top: 0;
@@ -68,9 +69,7 @@
   width: 100vw;
   z-index: 500;
 }
-.fullscreen-canvas {
-  pointer-events: auto;
-}
+.fullscreen-canvas,
 .fullscreen-canvas-container {
   pointer-events: none;
 }
@@ -524,6 +523,10 @@
 .btc-alert-container,
 .btc-effect-container {
   pointer-events: none;
+}
+#btc-button-container button {
+  pointer-events: all;
+  opacity: 0;
 }
 .btc-flex {
   display: flex;

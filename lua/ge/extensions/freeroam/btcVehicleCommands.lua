@@ -202,8 +202,8 @@ local function parseCommand (commandIn, currentLevel, commandId)
     return commands.explode(currentLevel)
   elseif commandIn == 'ignition' then
     return commands.toggleIgnition(currentLevel)
-  elseif commandIn == 'repair' then
-    return commands.repairCar()
+  elseif commandIn == 'reset' then
+    return commands.resetCar()
   end
   
   return nil
@@ -355,15 +355,15 @@ local function boost (level, power)
     return false
   end
   local vehDirection = player:getDirectionVector()
-  local mult = 15 * max(1.5, (1.01 ^ level))
-  local multTime = 0.5 * max(1.5, (1.01 ^ level))
+  local mult = 15
+  local multTime = 0.5
 
   if power == 'l' then
-    mult = 20
-    multTime = 0.5
+    mult = 15 * max(1.25, (1.01 ^ level))
+    multTime = 0.5 * max(1.25, (1.01 ^ level))
   elseif power == 'h' then
-    mult = 40
-    multTime = 0.75
+    mult = 35 * max(1.25, (1.01 ^ level))
+    multTime = 0.75 * max(1.25, (1.01 ^ level))
   end
   
   -- player:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f})', 
@@ -372,7 +372,7 @@ local function boost (level, power)
   return true
 end
 
-local function repairCar ()
+local function resetCar ()
 	local player = getPlayerVehicle(0)	
   if not player then
     return false
@@ -392,7 +392,7 @@ commands.randomPaint      = randomPaint
 commands.randomTune       = randomTune
 commands.randomBodyParts  = randomBodyParts
 commands.boost            = boost
-commands.repairCar        = repairCar
+commands.resetCar        = resetCar
 
 
 local function handleHorn (prevHornState)
