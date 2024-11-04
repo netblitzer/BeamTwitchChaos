@@ -54,7 +54,7 @@ public class BeamNG : SimpleTCPPack {
         // new("Shake the Screen", "view_shake") { Price = 80, Description = "Add some drama", Category = new EffectGrouping("UI") },
         new("Clear the Screen", "uireset") { Price = 15, Description = "Can we see again?", Category = UiEffects },
         new("Call in Clippy", "clippy") { Price = 150, Description = "I think the streamer might need some help", Category = UiEffects },
-        new("Windows Error", "windows_error") { Price = 750, Description = "Windows is a perfectly stable operating system", Category = UiEffects },
+        new("Windows Error", "windows_error") { Price = 30, Description = "Windows is a perfectly stable operating system", Category = UiEffects },
 
         // Vehicle effects directly change things about the player's vehicle in various ways
         new("Pop a Tire", "pop") { Price = 150, Description = "Make it a bit harder to drive", Category = VehicleEffects },
@@ -70,7 +70,7 @@ public class BeamNG : SimpleTCPPack {
         // new("Randomize the Parts", "random_part") { Price = 1000, Description = "Let's order some cool new parts", Category = VehicleEffects },
         // new("Damage a Part", "random_damage") { Price = 50, Description = "Give something a break", Category = VehicleEffects },
         // new("Repair the Car", "repair") { Price = 25, Description = "Nothing a bit of percussive maintenance can't fix", Category = VehicleEffects },
-        new("Reset the Car", "reset") { Price = 50, Description = "Let's just pick up where we were", Category = VehicleEffects },
+        new("Reset the Car", "reset") { Price = 100, Description = "Let's just pick up where we were", Category = VehicleEffects },
         new("Turn on the Forcefield", "forcefield") { Price = 75, Description = "Push everything away", Category = VehicleEffects },
         new("Turn on the Negative Forcefield", "attractfield") { Price = 250, Description = "Pull everything in", Category = VehicleEffects },
         new("Turn Around (Fast)", "spin") { Price = 200, Description = "I think we're going the wrong way", Category = VehicleEffects },

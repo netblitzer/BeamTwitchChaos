@@ -717,7 +717,7 @@ local function handlePropBasic (dt, poolName, velOffset, posOffset)
       ::queuePopped::
       local nextHeight = core_environment.getGravity() * -2
       if nextProp then
-        local playerPos = freeroam_btcVehicleCommands.vehicleData.massCenter or player:getPosition()
+        local playerPos = player:getPosition() --freeroam_btcVehicleCommands.vehicleData.massCenter or player:getPosition()
         local playerVel = player:getVelocity()
         local playerDirection = player:getDirectionVector()
         local playerUp = player:getDirectionVectorUp()
@@ -725,11 +725,10 @@ local function handlePropBasic (dt, poolName, velOffset, posOffset)
         
         local boundingBox = nextProp:getSpawnLocalAABB()
         local center = boundingBox:getCenter()
-        dump(center)
 
         local nextPos = playerPos + (playerVel * velOffset) + vec3(0, 0, nextHeight) + (playerDirection * posOffset)
         if poolName == 'ramp' then
-          nextPos = nextPos - center
+          nextPos = nextPos -- (center / 2)
         else
           nextPos = nextPos + center
         end

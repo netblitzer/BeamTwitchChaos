@@ -126,10 +126,10 @@ end
 
 local function alterScreen (level, mode)
   if mode == 'narrow' then
-    persistData.screen.narrowLevel = min(10, max(persistData.screen.narrowLevel, level) + 1)
+    persistData.screen.narrowLevel = min(20, max(persistData.screen.narrowLevel, level / 8.0) + 1)
     persistData.screen.narrowLife = max(persistData.screen.narrowLife, 15 + persistData.screen.narrowLevel)
   elseif mode == 'squish' then
-    persistData.screen.squishLevel = min(10, max(persistData.screen.squishLevel, level) + 1)
+    persistData.screen.squishLevel = min(15, max(persistData.screen.squishLevel, level / 8.0) + 1)
     persistData.screen.squishLife = max(persistData.screen.squishLife, 15 + persistData.screen.squishLevel)
   elseif mode == 'tunnel' then
     persistData.screen.tunnelLevel = max(persistData.screen.tunnelLevel, level) + 1
@@ -275,7 +275,7 @@ local function handleAlteredScreen (dt)
 
   if narrowInactive and squishInactive and tunnelInactive and shakeActive then
     persistData.screen.active = false
-    guihooks.trigger('BTCEffect-screen', persistData.screen)
+    --guihooks.trigger('BTCEffect-screen', persistData.screen)
   end
   guihooks.trigger('BTCEffect-screen', persistData.screen)
 end

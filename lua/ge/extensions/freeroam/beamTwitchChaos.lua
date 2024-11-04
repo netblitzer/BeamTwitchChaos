@@ -179,7 +179,7 @@ end
 --- @param shouldEnableCrowdEffects bool Whether crowd effect commands should be enabled or not
 local function toggleCrowdEffects (shouldEnableCrowdEffects, firstLoad)
   firstLoad = firstLoad or false
-  persistData.respondQueue['cc_effects.cc_effects'] = {
+  --[[persistData.respondQueue['cc_effects.cc_effects'] = {
     idType = 0x01,
     ids = { "cc_effect" },
     type = 0x01,
@@ -190,7 +190,23 @@ local function toggleCrowdEffects (shouldEnableCrowdEffects, firstLoad)
     ids = { "inverse_cc_effect" },
     type = 0x01,
     status = shouldEnableCrowdEffects and 0x81 or 0x80,
-  }
+  }]]
+  for i = 1, #crowdEffects do
+    persistData.respondQueue['cc_effects_e'..i] = {
+      idType = 0,
+      code = crowdEffects[i],
+      type = 1,
+      status = shouldEnableCrowdEffects and 0x80 or 0x81,
+    }
+  end
+  for i = 1, #inverseCrowdEffets do
+    persistData.respondQueue['cc_effects_d'..i] = {
+      idType = 0,
+      code = inverseCrowdEffets[i],
+      type = 1,
+      status = shouldEnableCrowdEffects and 0x81 or 0x80,
+    }
+  end
   -- If we're disbaling crowd effects, make sure to disable the continue effects
   --  Also make sure to reenable the activate command
   if not shouldEnableCrowdEffects then

@@ -1010,7 +1010,7 @@ const initialize = (scope) => {
       blackoutContainer.style.transform = `translate(${shakePos.x}px, ${shakePos.y}px)`
     }
     if (data.squishLife > 0) {
-      blackoutContainer.style.width = `calc(100vw - ${32 + data.squishLevel}vw)`
+      blackoutContainer.style.width = `calc(100vw - ${32 + (2 * data.squishLevel)}vw)`
       blackoutContainer.style.left = `calc(${16 + data.squishLevel}vw)`
     }
     else {
@@ -1018,7 +1018,7 @@ const initialize = (scope) => {
       blackoutContainer.style.left = `0px`
     }
     if (data.narrowLife > 0) {
-      blackoutContainer.style.height = `calc(100vh - ${32 + data.narrowLevel}vh)`
+      blackoutContainer.style.height = `calc(100vh - ${32 + (2 * data.narrowLevel)}vh)`
       blackoutContainer.style.top = `calc(${16 + data.narrowLevel}vh)`
     }
     else {

@@ -453,6 +453,8 @@
   width: 100vw;
   height: 100vh;
   transition: all 3s, transform 50ms;
+  left: 0;
+  top: 0;
 }
 .btc-effect-container .btc-effect-t-blackout,
 .btc-effect-container .btc-effect-b-blackout,

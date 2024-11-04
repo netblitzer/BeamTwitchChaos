@@ -87,22 +87,12 @@ local persistData = {
     lifeLeft = 0,
     level = 0,
   },
-  jump = {
-    active = false,
-    lifeLeft = 0,
-    level = 0,
-  },
   kickflip = {
     active = false,
     lifeLeft = 0,
     level = 0,
   },
   spin = {
-    active = false,
-    lifeLeft = 0,
-    level = 0,
-  },
-  boost = {
     active = false,
     lifeLeft = 0,
     level = 0,
@@ -169,7 +159,7 @@ local function parseCommand (commandIn, currentLevel, commandId)
   elseif command == 'kick' then
     return commands.addNudge(currentLevel, 1.5, option)
   elseif command == 'jump' then
-    return commands.addJump(currentLevel, option)
+    return commands.jump(currentLevel, option)
   elseif commandIn == 'kickflip' then
     return commands.addKickflip(currentLevel)
   elseif commandIn == 'spin' then
@@ -177,9 +167,9 @@ local function parseCommand (commandIn, currentLevel, commandId)
   elseif commandIn == 'slam' then
     return commands.addSlam(currentLevel)
   elseif command == 'tilt' then
-    return commands.addTilt(currentLevel, 1, option)
+    return commands.tilt(currentLevel, 1, option)
   elseif command == 'roll' then
-    return commands.addTilt(currentLevel, 2.5, option)
+    return commands.tilt(currentLevel, 2.5, option)
   elseif command == 'boost' then
     return commands.boost(currentLevel, option)
   elseif commandIn == 'skip' then
@@ -372,6 +362,49 @@ local function boost (level, power)
   return true
 end
 
+local function jump (level, power)
+  local vehicle = getPlayerVehicle(0)
+  if not vehicle then
+    return false
+  end
+  
+  local vehUp = vehicle:getDirectionVectorUp()
+  local mult = 100
+  local multTime = 0.05
+
+  if power == 'l' then
+    mult = 100 * max(1.25, (1.01 ^ level))
+    multTime = 0.05 * max(1.25, (1.01 ^ level))
+  elseif power == 'h' then
+    mult = 150 * max(1.3, (1.01 ^ level))
+    multTime = 0.05 * max(1.3, (1.01 ^ level))
+  end
+  
+  --vehicle:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f})', 
+  --  center.x, center.y, center.z, 2, 3000000000 * vehicleData.mass * mult * min(2, (1.05 ^ persistData.nudge.level))))
+  
+  vehicle:queueLuaCommand('thrusters.applyAccel('..tostring(vehUp * mult)..', '..tostring(multTime)..')')
+    
+  return true
+end
+
+local function tilt (level, power, direction)
+	local player = getPlayerVehicle(0)	
+  if not player then
+    return false
+  end
+
+  local dirMult = direction == 'r' and 1 or -1
+  local vehDirection = player:getDirectionVector()
+
+  local mult = 40 * max(1.25, (1.01 ^ level)) * power * dirMult
+  local multTime = 0.05 * max(1.25, (1.01 ^ level))
+
+  player:queueLuaCommand('thrusters.applyAccel(vec3(), '..tostring(multTime)..', nil, '..tostring(vehDirection * mult)..')')
+  --tostring(quatFromDir(vehRight) * mult)
+  return true
+end
+
 local function resetCar ()
 	local player = getPlayerVehicle(0)	
   if not player then
@@ -392,7 +425,9 @@ commands.randomPaint      = randomPaint
 commands.randomTune       = randomTune
 commands.randomBodyParts  = randomBodyParts
 commands.boost            = boost
-commands.resetCar        = resetCar
+commands.jump             = jump
+commands.tilt             = tilt
+commands.resetCar         = resetCar
 
 
 local function handleHorn (prevHornState)
@@ -635,34 +670,6 @@ local function addNudge (level, mult, direction)
   return true
 end
 
-local function addJump (level, power)
-  if not getPlayerVehicle(0) then
-    return false
-  end
-
-  persistData.jump.active = true
-  persistData.jump.lifeLeft = max(persistData.jump.lifeLeft, 0.1)
-  persistData.jump.level = level
-  
-  local vehicle = getPlayerVehicle(0)
-  local vehDirection = vehicle:getDirectionVector()
-  local vehUp = vehicle:getDirectionVectorUp()
-  local boundingBox = vehicle:getSpawnWorldOOBB()
-  local center = boundingBox:getCenter() + (vehDirection * vehicleData.massCenter.y) + vehUp
-  local mult = 1
-
-  if power == 'l' then
-    mult = 1
-  elseif power == 'h' then
-    mult = 2
-  end
-  
-  vehicle:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f})', 
-    center.x, center.y, center.z, 2, 3000000000 * vehicleData.mass * mult * min(2, (1.05 ^ persistData.nudge.level))))
-    
-  return true
-end
-
 local function addKickflip (level)
   if not getPlayerVehicle(0) then
     return false
@@ -726,7 +733,7 @@ local function addTilt (level, power, direction)
   persistData.tilt.lifeLeft = 0.15
   persistData.tilt.level = level
   
-  local dirMult = direction == 'l' and 1 or -1
+  local dirMult = direction == 'r' and 1 or -1
   local vehicle = getPlayerVehicle(0)
   local boundingBox = vehicle:getSpawnWorldOOBB()
   local halfExtents = boundingBox:getHalfExtents()
@@ -737,7 +744,7 @@ local function addTilt (level, power, direction)
     + (vehRight * vehicleData.massCenter.x) - (vehRight * halfExtents.x * dirMult)-- + (vehUp * vehicleData.massCenter.z)
   local downRight = boundingBox:getCenter() + (vehDirection * vehicleData.massCenter.y) - vehUp
     + (vehRight * vehicleData.massCenter.x) + (vehRight * halfExtents.x * dirMult)-- + (vehUp * vehicleData.massCenter.z)
-  local mult = 25 * power
+  local mult = -25 * power
 
   vehicle:queueLuaCommand(string.format('obj:setPlanets({%f, %f, %f, %d, %f, %f, %f, %f, %d, %f})', 
     upLeft.x, upLeft.y, upLeft.z, 2, 200000000 * mult * vehicleData.mass * min(2, (1.05 ^ persistData.nudge.level)), 
@@ -822,7 +829,6 @@ commands.addInvertThrottle    = addInvertThrottle
 commands.addGhost             = addGhost
 commands.addAlarm             = addAlarm
 commands.addNudge             = addNudge
-commands.addJump              = addJump
 commands.addKickflip          = addKickflip
 commands.addSpin              = addSpin
 commands.addTilt              = addTilt
@@ -1029,17 +1035,6 @@ local function handleNudge (dt)
   end
 end
 
-local function handleJump (dt)
-  persistData.jump.lifeLeft = max(0, persistData.jump.lifeLeft - dt)
-
-  if persistData.jump.lifeLeft == 0 then
-    persistData.jump.active = false
-    persistData.jump.level = 0
-    getPlayerVehicle(0):queueLuaCommand('obj:setPlanets({})')
-    return
-  end
-end
-
 local function handleTilt (dt)
   persistData.tilt.lifeLeft = max(0, persistData.tilt.lifeLeft - dt)
 
@@ -1144,9 +1139,6 @@ local function handleTick (dt)
   end
   if persistData.nudge.active then
     handleNudge(dt)
-  end
-  if persistData.jump.active then
-    handleJump(dt)
   end
   if persistData.kickflip.active then
     handleKickflip(dt)
