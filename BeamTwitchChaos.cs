@@ -4,23 +4,24 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using CrowdControl.Common;
 using JetBrains.Annotations;
+using ConnectorLib.SimpleTCP;
 using ConnectorType = CrowdControl.Common.ConnectorType;
 
 namespace CrowdControl.Games.Packs.BeamNG;
 
 [UsedImplicitly]
-public class BeamNG : SimpleTCPPack {
+public class BeamNG : SimpleTCPPack<SimpleTCPServerConnector> {
     public override string Host => "0.0.0.0";
     public override ushort Port => 43384;
 
-    public override ISimpleTCPPack.MessageFormat MessageFormat => ISimpleTCPPack.MessageFormat.CrowdControl;
-    public override ISimpleTCPPack.QuantityFormat QuantityFormat => ISimpleTCPPack.QuantityFormat.ParameterAndField;
+    public override ISimpleTCPPack.MessageFormatType MessageFormat => ISimpleTCPPack.MessageFormatType.CrowdControl;
+    public override ISimpleTCPPack.QuantityFormatType QuantityFormat => ISimpleTCPPack.QuantityFormatType.ParameterAndField;
 
     public BeamNG (UserRecord player, Func<CrowdControlBlock, bool> responseHandler, Action<object> statusUpdateHandler) : base(player, responseHandler, statusUpdateHandler) { }
 
     public override Game Game { get; } = new("BeamNG.Drive", "BeamNG", "PC", ConnectorType.SimpleTCPServerConnector) { Hidden = Game.HiddenState.EarlyAccess };
 
-    public static ParameterDef GravityParameters { get; } = new ParameterDef("Gravity", "gravity",
+    public static ParameterDef GravityParameters { get; } = new ParameterDef("Gravity", "gravity", [
         new Parameter("Pluto", "grav_pluto"),
         new Parameter("Moon", "grav_moon"),
         new Parameter("Mars", "grav_mars"),
@@ -28,15 +29,15 @@ public class BeamNG : SimpleTCPPack {
         new Parameter("Saturn", "grav_saturn"),
         new Parameter("Double Earth", "grav_double_earth"),
         new Parameter("Jupiter", "grav_jupiter")
-    );
+    ]);
 
-    public static ParameterDef SimspeedParameters { get; } = new ParameterDef("Sim Speed", "simspeed",
+    public static ParameterDef SimspeedParameters { get; } = new ParameterDef("Sim Speed", "simspeed", [
         new Parameter("Real Speed", "time_1"),
         new Parameter("Half Speed", "time_2"),
         new Parameter("1/4 Speed", "time_4"),
         new Parameter("1/8 Speed", "time_8"),
         new Parameter("1/16 Speed", "time_16")
-    );
+    ]);
 
     public const string UiEffects = "UI Effects";
     public const string VehicleEffects = "Vehicle Effects";

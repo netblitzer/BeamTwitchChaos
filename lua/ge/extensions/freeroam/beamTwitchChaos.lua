@@ -1019,9 +1019,9 @@ end
 --[[
 local propPool, propPoolId
 local function createPropPool ()
-  if not core_vehiclePoolingManager then extensions.load('core_vehiclePoolingManager') end
+  if not core_vehicleActivePooling then extensions.load('core_vehicleActivePooling') end
   local max = 5
-  propPool = core_vehiclePoolingManager.createPool()
+  propPool = core_vehicleActivePooling.createPool()
   propPool.name = 'btcProps'
   propPoolId = propPool.id
   propPool:setMaxActiveAmount(max)
@@ -1181,8 +1181,8 @@ local function onUpdate (dt, dtSim, dtReal)
   if connectionStatus == 'connected' and client then
     handleServerConnection()
     timecheck = timeprobe(true)
-    if timecheck and timecheck > 1 and settings.debug then
-      print(timecheck)
+    if timecheck and timecheck > 1 and settings.debug and settings.debugVerbose then
+      log('D', logTag, 'timecheck: '..timecheck)
     end
 
     if #parseQueue > 0 then

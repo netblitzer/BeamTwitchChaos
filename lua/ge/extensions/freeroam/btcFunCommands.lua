@@ -2,7 +2,7 @@ local M = {}
 local logTag = "BeamTwitchChaos-fun"
 
 extensions = require("extensions")
-extensions.load({'core_vehiclePoolingManager'})
+extensions.load({'core_vehicleActivePooling'})
 
 local random = math.random
 local min, max = math.min, math.max
@@ -223,7 +223,7 @@ local pools = {
 local function init ()
   local playerVeh = getPlayerVehicle(0)
   local playerVehId = playerVeh and playerVeh:getId() or nil
-  if not core_vehiclePoolingManager then extensions.load('core_vehiclePoolingManager') end
+  if not core_vehicleActivePooling then extensions.load('core_vehicleActivePooling') end
   -- _group = extensions.core_multispawn.createGroup(spawnCount, 
   --  {filters = {key = {rock1 = 1, rock2 = 1, rock3 = 1, rock4 = 1, rock5 = 1, rock6 = 1, rock7 = 1}}, allConfigs = true})
   -- Spawns only rocks
@@ -232,7 +232,7 @@ local function init ()
   -- core_multiSpawn.createGroup(20, {filters = {model_key = {cones = 1}}, allConfigs = true, allMods = false})
 
   for k, pool in pairs(pools) do
-    pool.p = core_vehiclePoolingManager.createPool()
+    pool.p = core_vehicleActivePooling.createPool()
     pool.p.name = 'btc-'..k
     pool.id = pool.p.id
     pool.p:setMaxActiveAmount(pool.maxCount)
